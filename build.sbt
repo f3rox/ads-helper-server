@@ -12,5 +12,7 @@ scalaVersion := "2.12.2"
 
 libraryDependencies ++= Seq(jdbc, ehcache, ws, specs2 % Test, guice)
 libraryDependencies += "com.google.api-ads" % "google-ads" % "4.1.0"
+libraryDependencies += "com.google.api-client" % "google-api-client" % "1.30.2"
+libraryDependencies += ws
 
 unmanagedResourceDirectories in Test <+= baseDirectory(_ / "target/web/public/test")

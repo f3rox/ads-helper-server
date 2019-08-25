@@ -45,6 +45,7 @@ class GoogleAds @Inject()(appConfig: AppConfig) {
   def getCustomer(implicit googleAdsClient: GoogleAdsClient): Customer = {
     val customerServiceClient: CustomerServiceClient = googleAdsClient.getLatestVersion.createCustomerServiceClient()
     val customer: Customer = customerServiceClient.getCustomer(ResourceNames.customer(googleAdsClient.getLoginCustomerId))
+    customerServiceClient.shutdownNow()
     customer
   }
 
@@ -76,6 +77,7 @@ class GoogleAds @Inject()(appConfig: AppConfig) {
   }
 
   def addCampaign(budgetResourceName: String, name: String)(implicit googleAdsClient: GoogleAdsClient, customerId: Long): String = {
+    val startTime = System.currentTimeMillis()
     val campaign: Campaign = Campaign.newBuilder()
       .setName(StringValue.of(name))
       .setAdvertisingChannelType(AdvertisingChannelType.SEARCH)
@@ -89,28 +91,12 @@ class GoogleAds @Inject()(appConfig: AppConfig) {
     val response = campaignServiceClient.mutateCampaigns(customerId.toString, operations.asJava)
     campaignServiceClient.shutdownNow()
     val campaignResourceName = response.getResults(0).getResourceName
-    println("Added Campaign: " + campaignResourceName)
+    println(s"Added Campaign $campaignResourceName in ${(System.currentTimeMillis() - startTime) / 1000.0} sec")
     campaignResourceName
   }
 
-  def addAdGroup(campaignResourceName: String, name: String)(implicit googleAdsClient: GoogleAdsClient, customerId: Long): String = {
-    val adGroup: AdGroup = AdGroup.newBuilder()
-      .setName(StringValue.of(name))
-      .setStatus(AdGroupStatus.ENABLED)
-      .setCampaign(StringValue.of(campaignResourceName))
-      .setType(AdGroupType.SEARCH_STANDARD)
-      .setCpcBidMicros(Int64Value.of(10000000L))
-      .build()
-    val operations = List(AdGroupOperation.newBuilder().setCreate(adGroup).build())
-    val adGroupServiceClient = googleAdsClient.getLatestVersion.createAdGroupServiceClient()
-    val response = adGroupServiceClient.mutateAdGroups(customerId.toString, operations.asJava)
-    adGroupServiceClient.shutdownNow()
-    val adGroupResourceName = response.getResults(0).getResourceName
-    println("Added AdGroup: " + adGroupResourceName)
-    adGroupResourceName
-  }
-
   def addAdGroups(campaignResourceName: String, products: List[Product])(implicit googleAdsClient: GoogleAdsClient, customerId: Long): List[String] = {
+    val startTime = System.currentTimeMillis()
     val operations = for (product <- products) yield {
       val adGroup = AdGroup.newBuilder()
         .setName(StringValue.of(s"${product.name} #${new BigInteger(130, new SecureRandom()).toString(32)}"))
@@ -126,30 +112,12 @@ class GoogleAds @Inject()(appConfig: AppConfig) {
     val response = adGroupServiceClient.mutateAdGroups(customerId.toString, operations.asJava)
     adGroupServiceClient.shutdownNow()
     val adGroupsResourcesNames = response.getResultsList.asScala.map(_.getResourceName).toList
-    println(s"Added ${adGroupsResourcesNames.size} AdGroups")
+    println(s"Added ${adGroupsResourcesNames.size} AdGroups in ${(System.currentTimeMillis() - startTime) / 1000.0} sec")
     adGroupsResourcesNames
   }
 
-  def addKeyword(adGroupResourceName: String, keywordText: String)(implicit googleAdsClient: GoogleAdsClient, customerId: Long): String = {
-    val keywordInfo = KeywordInfo.newBuilder()
-      .setText(StringValue.of(keywordText))
-      .setMatchType(KeywordMatchType.BROAD)
-      .build()
-    val criterion = AdGroupCriterion.newBuilder()
-      .setAdGroup(StringValue.of(adGroupResourceName))
-      .setStatus(AdGroupCriterionStatus.ENABLED)
-      .setKeyword(keywordInfo)
-      .build()
-    val operations = List(AdGroupCriterionOperation.newBuilder().setCreate(criterion).build())
-    val adGroupCriterionServiceClient = googleAdsClient.getLatestVersion.createAdGroupCriterionServiceClient()
-    val response = adGroupCriterionServiceClient.mutateAdGroupCriteria(customerId.toString, operations.asJava)
-    adGroupCriterionServiceClient.shutdownNow()
-    val keywordsResourceName = response.getResults(0).getResourceName
-    println("Added Keyword: " + keywordsResourceName)
-    keywordsResourceName
-  }
-
   def addKeywords(productsWithAdGroups: List[(Product, String)])(implicit googleAdsClient: GoogleAdsClient, customerId: Long): List[String] = {
+    val startTime = System.currentTimeMillis()
     val operations = for ((product, adGroupResourceName) <- productsWithAdGroups) yield {
       val keywordInfo = KeywordInfo.newBuilder()
         .setText(StringValue.of(s"${product.category} ${product.name}"))
@@ -167,36 +135,12 @@ class GoogleAds @Inject()(appConfig: AppConfig) {
     val response = adGroupCriterionServiceClient.mutateAdGroupCriteria(customerId.toString, operations.asJava)
     adGroupCriterionServiceClient.shutdownNow()
     val keywordsResourcesNames = response.getResultsList.asScala.map(_.getResourceName).toList
-    println(s"Added ${keywordsResourcesNames.size} Keywords")
+    println(s"Added ${keywordsResourcesNames.size} Keywords in ${(System.currentTimeMillis() - startTime) / 1000.0} sec")
     keywordsResourcesNames
   }
 
-  def addExpandedTextAd(adGroupResourceName: String, product: Product)(implicit googleAdsClient: GoogleAdsClient, customerId: Long): String = {
-    val expandedTextAdInfo = ExpandedTextAdInfo.newBuilder()
-      .setHeadlinePart1(StringValue.of(product.category))
-      .setHeadlinePart2(StringValue.of(product.name))
-      .setHeadlinePart3(StringValue.of(product.price.toString))
-      .setDescription(StringValue.of(product.description))
-      .build()
-    val ad = Ad.newBuilder()
-      .setExpandedTextAd(expandedTextAdInfo)
-      .addFinalUrls(StringValue.of(product.url))
-      .build()
-    val adGroupAd = AdGroupAd.newBuilder()
-      .setAdGroup(StringValue.of(adGroupResourceName))
-      .setStatus(AdGroupAdStatus.PAUSED)
-      .setAd(ad)
-      .build()
-    val operations = List(AdGroupAdOperation.newBuilder().setCreate(adGroupAd).build())
-    val adGroupServiceClient = googleAdsClient.getLatestVersion.createAdGroupAdServiceClient()
-    val response = adGroupServiceClient.mutateAdGroupAds(customerId.toString, operations.asJava)
-    adGroupServiceClient.shutdownNow()
-    val adResourceName = response.getResults(0).getResourceName
-    println("Added Ad: " + adResourceName)
-    adResourceName
-  }
-
   def addExpandedTextAds(productsWithAdGroups: List[(Product, String)])(implicit googleAdsClient: GoogleAdsClient, customerId: Long): List[String] = {
+    val startTime = System.currentTimeMillis()
     val operations = for ((product, adGroupResourceName) <- productsWithAdGroups) yield {
       val expandedTextAdInfo = ExpandedTextAdInfo.newBuilder()
         .setHeadlinePart1(StringValue.of(product.category))
@@ -220,7 +164,7 @@ class GoogleAds @Inject()(appConfig: AppConfig) {
     val response = adGroupServiceClient.mutateAdGroupAds(customerId.toString, operations.asJava)
     adGroupServiceClient.shutdownNow()
     val adResourcesNames = response.getResultsList.asScala.map(_.getResourceName).toList
-    println(s"Added ${adResourcesNames.size} Ads")
+    println(s"Added ${adResourcesNames.size} Ads in ${(System.currentTimeMillis() - startTime) / 1000.0} sec")
     adResourcesNames
   }
 }

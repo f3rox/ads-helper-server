@@ -46,12 +46,13 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, googl
   }
 
   def upload = Action(parse.multipartFormData) { request =>
+    val start = System.currentTimeMillis()
     val refreshToken = request.body.asFormUrlEncoded("refresh_token").head
     println(s"\nNEW REQUEST:\nRefresh token: $refreshToken")
     request.body.file("file").map { uploadedFile =>
       println(s"File name: ${uploadedFile.filename}\nFile size: ${uploadedFile.fileSize / 1024.0 / 1024.0} MB")
       if (!Files.exists(Paths.get(rootPath + "/tmp"))) println(Files.createDirectory(Paths.get(rootPath + "/tmp")))
-      val filePath = uploadedFile.ref.moveFileTo(Paths.get(s"$rootPath/tmp/${uploadedFile.filename}"), replace = true).toString
+      val filePath = uploadedFile.ref.moveFileTo(Paths.get(s"$rootPath/tmp/${uploadedFile.filename}"), replace = true)
       println(s"File path: $filePath")
       val managerCustomerId = 1169899225L
       implicit val clientCustomerId: Long = 2515161029L
@@ -59,11 +60,11 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, googl
       val budgetResourceName: String = googleAds.addCampaignBudget(500000, s"Test CampaignBudget #${System.currentTimeMillis()}")
       val campaignResourceName = googleAds.addCampaign(budgetResourceName, s"Test Campaign #${System.currentTimeMillis()}")
       val products = csvParser.parseCsv(filePath)
-      products.foreach { product =>
-        val adGroupResourceName = googleAds.addAdGroup(campaignResourceName, s"Test AdGroup #${System.currentTimeMillis()}")
-        val keywords = googleAds.addKeyword(adGroupResourceName, s"${product.category} ${product.name}")
-        val ad = googleAds.addExpandedTextAd(adGroupResourceName, product)
-      }
+      val adGroupsResourcesNames = googleAds.addAdGroups(campaignResourceName, products)
+      val productsWithAdGroups = products.zip(adGroupsResourcesNames)
+      googleAds.addKeywords(productsWithAdGroups)
+      googleAds.addExpandedTextAds(productsWithAdGroups)
+      println(s"Work finished in ${(System.currentTimeMillis() - start) / 1000.0} sec")
       Ok("File successfully uploaded")
     }.getOrElse(BadRequest("Upload error"))
   }

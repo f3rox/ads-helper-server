@@ -1,5 +1,7 @@
 package utils
 
+import java.nio.file.{Files, Path}
+
 import javax.inject.Singleton
 import models.Product
 
@@ -12,12 +14,14 @@ class CsvParser {
     Product(values(0).toLong, values(1), values(2), values(3).toDouble, values(4), values(5))
   }
 
-  def parseCsv(path: String): List[Product] = {
-    val source = Source.fromFile(path)
+  def parseCsv(path: Path): List[Product] = {
+    val startTime = System.currentTimeMillis()
+    val source = Source.fromFile(path.toString)
     val csvRowsList = source.getLines().toList
     source.close
+    if (Files.deleteIfExists(path)) println(s"File deleted: ${path.toString}")
     val productsList = csvRowsList.map(csvRowToProduct)
-    println(s"File successfully parsed: $path")
+    println(s"${path.getFileName} parsed in ${(System.currentTimeMillis() - startTime) / 1000.0} sec")
     productsList
   }
 }

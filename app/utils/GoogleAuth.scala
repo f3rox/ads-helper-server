@@ -47,6 +47,7 @@ class GoogleAuth @Inject()(@Named("auth-actor") authActor: ActorRef, ws: WSClien
     val userAuthorizer = getUserAuthorizer(state)
     val userCredentials = userAuthorizer.getCredentialsFromCode(code, URI.create(appConfig.getServerBaseUrl))
     val accessToken = userCredentials.getAccessToken.getTokenValue
+    println("Access token: " + accessToken)
     val refreshToken = userCredentials.getRefreshToken
     val userInfo = getUserInfo(accessToken)
     val authUserInfo = userInfo.toAuthUserInfo(accessToken, refreshToken)

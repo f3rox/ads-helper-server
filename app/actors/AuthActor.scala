@@ -7,9 +7,11 @@ import scala.collection.mutable
 
 object AuthActor {
 
-  case class NewAuth(state: String, userAuthorizer: UserAuthorizer)
+  sealed trait AuthActorMessage
 
-  case class GetUserAuthorizer(state: String)
+  case class NewAuth(state: String, userAuthorizer: UserAuthorizer) extends AuthActorMessage
+
+  case class GetUserAuthorizer(state: String) extends AuthActorMessage
 
 }
 

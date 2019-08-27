@@ -1,22 +1,32 @@
 package controllers
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.Paths
 
+import actors.AdGroupsActor.AddAdGroups
+import actors.CampaignActor.AddCampaign
+import actors.CampaignBudgetActor.AddCampaignBudget
+import actors.ExpandedTextAdsActor.AddExpandedTextAds
+import actors.FileActor.ParseFile
+import actors.GoogleAdsActor._
 import actors.HelloActor.SayHello
+import actors.KeywordsActor.AddKeywords
+import actors.RootActor.{GetFileActor, GetGoogleAdsActor}
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
-import com.google.ads.googleads.lib.GoogleAdsClient
 import javax.inject._
+import models.Product
+import play.api.libs.concurrent.InjectedActorSupport
 import play.api.mvc._
 import utils.{AppConfig, CsvParser, GoogleAds, GoogleAuth}
 
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 @Singleton
-class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, googleAuth: GoogleAuth, csvParser: CsvParser, googleAds: GoogleAds, appConfig: AppConfig, components: ControllerComponents) extends AbstractController(components) {
-  implicit val timeout: Timeout = 10.seconds
+class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Named("root-actor") rootActor: ActorRef, googleAuth: GoogleAuth, csvParser: CsvParser, googleAds: GoogleAds, appConfig: AppConfig, components: ControllerComponents) extends AbstractController(components) with InjectedActorSupport {
+  implicit val timeout: Timeout = 10.minutes
   val rootPath: String = Paths.get("").toAbsolutePath.toString
 
   def index = Action.async {
@@ -48,22 +58,25 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, googl
   def upload = Action(parse.multipartFormData) { request =>
     val start = System.currentTimeMillis()
     val refreshToken = request.body.asFormUrlEncoded("refresh_token").head
+    val managerCustomerId = 1169899225L
+    val clientCustomerId = 2515161029L
     println(s"\nNEW REQUEST:\nRefresh token: $refreshToken")
     request.body.file("file").map { uploadedFile =>
-      println(s"File name: ${uploadedFile.filename}\nFile size: ${uploadedFile.fileSize / 1024.0 / 1024.0} MB")
-      if (!Files.exists(Paths.get(rootPath + "/tmp"))) println(Files.createDirectory(Paths.get(rootPath + "/tmp")))
-      val filePath = uploadedFile.ref.moveFileTo(Paths.get(s"$rootPath/tmp/${uploadedFile.filename}"), replace = true)
-      println(s"File path: $filePath")
-      val managerCustomerId = 1169899225L
-      implicit val clientCustomerId: Long = 2515161029L
-      implicit val googleAdsClient: GoogleAdsClient = googleAds.getGoogleAdsClient(refreshToken, managerCustomerId)
-      val budgetResourceName: String = googleAds.addCampaignBudget(500000, s"Test CampaignBudget #${System.currentTimeMillis()}")
-      val campaignResourceName = googleAds.addCampaign(budgetResourceName, s"Test Campaign #${System.currentTimeMillis()}")
-      val products = csvParser.parseCsv(filePath)
-      val adGroupsResourcesNames = googleAds.addAdGroups(campaignResourceName, products)
+      val fileActor = Await.result((rootActor ? GetFileActor(uploadedFile.filename)).mapTo[ActorRef], 10.minutes)
+      val products = Await.result((fileActor ? ParseFile(uploadedFile.ref)).mapTo[List[Product]], 10.minutes)
+      val googleAdsActor = Await.result((rootActor ? GetGoogleAdsActor(refreshToken, managerCustomerId, clientCustomerId)).mapTo[ActorRef], 10.minutes)
+      val campaignBudgetActor = Await.result((googleAdsActor ? GetCampaignBudgetActor).mapTo[ActorRef], 10.minutes)
+      val budgetResourceName = Await.result((campaignBudgetActor ? AddCampaignBudget(500000, s"CampaignBudget #${System.currentTimeMillis()}")).mapTo[String], 10.minutes)
+      val campaignActor = Await.result((googleAdsActor ? GetCampaignActor).mapTo[ActorRef], 10.minutes)
+      val campaignResourceName = Await.result((campaignActor ? AddCampaign(budgetResourceName, s"Campaign #${System.currentTimeMillis()}")).mapTo[String], 10.minutes)
+      //      val campaignResourceName = googleAds.addCampaign(budgetResourceName, s"Campaign #${System.currentTimeMillis()}")(googleAds.getGoogleAdsClient(refreshToken, managerCustomerId), clientCustomerId)
+      val adGroupsActor = Await.result((googleAdsActor ? GetAdGroupsActor).mapTo[ActorRef], 10.minutes)
+      val adGroupsResourcesNames = Await.result((adGroupsActor ? AddAdGroups(campaignResourceName, products)).mapTo[List[String]], 10.minutes)
       val productsWithAdGroups = products.zip(adGroupsResourcesNames)
-      googleAds.addKeywords(productsWithAdGroups)
-      googleAds.addExpandedTextAds(productsWithAdGroups)
+      val keywordsActor = Await.result((googleAdsActor ? GetKeywordsActor).mapTo[ActorRef], 10.minutes)
+      Await.ready(keywordsActor ? AddKeywords(productsWithAdGroups), 10.minutes)
+      val expandedTextAdsActor = Await.result((googleAdsActor ? GetExpandedTextAdsActor).mapTo[ActorRef], 10.minutes)
+      Await.ready(expandedTextAdsActor ? AddExpandedTextAds(productsWithAdGroups), 10.minutes)
       println(s"Work finished in ${(System.currentTimeMillis() - start) / 1000.0} sec")
       Ok("File successfully uploaded")
     }.getOrElse(BadRequest("Upload error"))

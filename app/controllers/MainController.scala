@@ -11,7 +11,7 @@ import actors.GoogleAdsActor._
 import actors.HelloActor.SayHello
 import actors.KeywordsActor.AddKeywords
 import actors.RootActor.{GetFileActor, GetGoogleAdsActor}
-import akka.actor.ActorRef
+import akka.actor.{ActorRef, PoisonPill}
 import akka.pattern.ask
 import akka.util.Timeout
 import javax.inject._
@@ -64,19 +64,25 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Name
     request.body.file("file").map { uploadedFile =>
       val fileActor = Await.result((rootActor ? GetFileActor(uploadedFile.filename)).mapTo[ActorRef], 10.minutes)
       val products = Await.result((fileActor ? ParseFile(uploadedFile.ref)).mapTo[List[Product]], 10.minutes)
+      fileActor ! PoisonPill
       val googleAdsActor = Await.result((rootActor ? GetGoogleAdsActor(refreshToken, managerCustomerId, clientCustomerId)).mapTo[ActorRef], 10.minutes)
       val campaignBudgetActor = Await.result((googleAdsActor ? GetCampaignBudgetActor).mapTo[ActorRef], 10.minutes)
       val budgetResourceName = Await.result((campaignBudgetActor ? AddCampaignBudget(500000, s"CampaignBudget #${System.currentTimeMillis()}")).mapTo[String], 10.minutes)
+      campaignBudgetActor ! PoisonPill
       val campaignActor = Await.result((googleAdsActor ? GetCampaignActor).mapTo[ActorRef], 10.minutes)
       val campaignResourceName = Await.result((campaignActor ? AddCampaign(budgetResourceName, s"Campaign #${System.currentTimeMillis()}")).mapTo[String], 10.minutes)
-      //      val campaignResourceName = googleAds.addCampaign(budgetResourceName, s"Campaign #${System.currentTimeMillis()}")(googleAds.getGoogleAdsClient(refreshToken, managerCustomerId), clientCustomerId)
+      campaignActor ! PoisonPill
       val adGroupsActor = Await.result((googleAdsActor ? GetAdGroupsActor).mapTo[ActorRef], 10.minutes)
       val adGroupsResourcesNames = Await.result((adGroupsActor ? AddAdGroups(campaignResourceName, products)).mapTo[List[String]], 10.minutes)
+      adGroupsActor ! PoisonPill
       val productsWithAdGroups = products.zip(adGroupsResourcesNames)
       val keywordsActor = Await.result((googleAdsActor ? GetKeywordsActor).mapTo[ActorRef], 10.minutes)
       Await.ready(keywordsActor ? AddKeywords(productsWithAdGroups), 10.minutes)
+      keywordsActor ! PoisonPill
       val expandedTextAdsActor = Await.result((googleAdsActor ? GetExpandedTextAdsActor).mapTo[ActorRef], 10.minutes)
       Await.ready(expandedTextAdsActor ? AddExpandedTextAds(productsWithAdGroups), 10.minutes)
+      expandedTextAdsActor ! PoisonPill
+      googleAdsActor ! PoisonPill
       println(s"Work finished in ${(System.currentTimeMillis() - start) / 1000.0} sec")
       Ok("File successfully uploaded")
     }.getOrElse(BadRequest("Upload error"))

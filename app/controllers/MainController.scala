@@ -1,7 +1,5 @@
 package controllers
 
-import java.nio.file.Paths
-
 import actors.HelloActor.SayHello
 import actors.UploadActor.CreateCampaign
 import akka.actor.ActorRef
@@ -17,8 +15,7 @@ import scala.concurrent.duration._
 
 @Singleton
 class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Named("upload-actor") uploadActor: ActorRef, googleAuth: GoogleAuth, appConfig: AppConfig, components: ControllerComponents) extends AbstractController(components) with InjectedActorSupport {
-  implicit val timeout: Timeout = 10.minutes
-  val rootPath: String = Paths.get("").toAbsolutePath.toString
+  implicit val timeout: Timeout = 1.minute
 
   def index = Action.async {
     (helloActor ? SayHello).mapTo[String].map { message =>

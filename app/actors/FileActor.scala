@@ -10,9 +10,9 @@ import utils.CsvParser
 
 object FileActor {
 
-  sealed trait FileActorMessage
+  sealed trait Message
 
-  case class ParseFile(uploadedFile: TemporaryFile) extends FileActorMessage
+  case class ParseFile(uploadedFile: TemporaryFile) extends Message
 
   trait Factory {
     def apply(fileName: String): Actor

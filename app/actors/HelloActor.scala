@@ -4,9 +4,9 @@ import akka.actor.Actor
 
 object HelloActor {
 
-  sealed trait HelloActorMessage
+  sealed trait Message
 
-  case object SayHello extends HelloActorMessage
+  case object SayHello extends Message
 
 }
 

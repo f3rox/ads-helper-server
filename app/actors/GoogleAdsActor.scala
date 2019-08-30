@@ -9,17 +9,17 @@ import utils.GoogleAds
 
 object GoogleAdsActor {
 
-  sealed trait GoogleAdsActorMessage
+  sealed trait Message
 
-  case object GetCampaignBudgetActor extends GoogleAdsActorMessage
+  case object GetCampaignBudgetActor extends Message
 
-  case object GetCampaignActor extends GoogleAdsActorMessage
+  case object GetCampaignActor extends Message
 
-  case object GetAdGroupsActor extends GoogleAdsActorMessage
+  case object GetAdGroupsActor extends Message
 
-  case object GetKeywordsActor extends GoogleAdsActorMessage
+  case object GetKeywordsActor extends Message
 
-  case object GetExpandedTextAdsActor extends GoogleAdsActorMessage
+  case object GetExpandedTextAdsActor extends Message
 
   trait Factory {
     def apply(refreshToken: String, @Assisted("manager") managerCustomerId: Long, @Assisted("client") clientCustomerId: Long): Actor

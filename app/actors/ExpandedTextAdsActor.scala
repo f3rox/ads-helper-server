@@ -9,9 +9,9 @@ import utils.GoogleAds
 
 object ExpandedTextAdsActor {
 
-  sealed trait ExpandedTextAdsActorMessage
+  sealed trait Message
 
-  case class AddExpandedTextAds(productsWithAdGroups: List[(Product, String)]) extends ExpandedTextAdsActorMessage
+  case class AddExpandedTextAds(productsWithAdGroups: List[(Product, String)]) extends Message
 
   trait Factory {
     def apply(googleAdsClient: GoogleAdsClient, customerId: Long): Actor

@@ -6,11 +6,11 @@ import play.api.libs.concurrent.InjectedActorSupport
 
 object RootActor {
 
-  sealed trait RootActorMessage
+  sealed trait Message
 
-  case class GetFileActor(fileName: String) extends RootActorMessage
+  case class GetFileActor(fileName: String) extends Message
 
-  case class GetGoogleAdsActor(refreshToken: String, managerCustomerId: Long, clientCustomerId: Long) extends RootActorMessage
+  case class GetGoogleAdsActor(refreshToken: String, managerCustomerId: Long, clientCustomerId: Long) extends Message
 
 }
 

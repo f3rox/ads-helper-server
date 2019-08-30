@@ -8,9 +8,9 @@ import utils.GoogleAds
 
 object CampaignBudgetActor {
 
-  sealed trait CampaignBudgetActorMessage
+  sealed trait Message
 
-  case class AddCampaignBudget(amount: Int, name: String) extends CampaignBudgetActorMessage
+  case class AddCampaignBudget(amount: Int, name: String) extends Message
 
   trait Factory {
     def apply(googleAdsClient: GoogleAdsClient, customerId: Long): Actor

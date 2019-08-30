@@ -7,6 +7,7 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     bindActor[HelloActor]("hello-actor")
     bindActor[AuthActor]("auth-actor")
     bindActor[RootActor]("root-actor")
+    bindActor[UploadActor]("upload-actor")
     bindActorFactory[FileActor, FileActor.Factory]
     bindActorFactory[AdGroupsActor, AdGroupsActor.Factory]
     bindActorFactory[CampaignActor, CampaignActor.Factory]

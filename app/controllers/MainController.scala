@@ -50,7 +50,7 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Name
     val refreshToken = request.body.asFormUrlEncoded("refresh_token").head
     val managerCustomerId = 1169899225L
     val clientCustomerId = 2515161029L
-    val file = request.body.file("file").get
-    (uploadActor ? CreateCampaign(file.ref, file.filename, refreshToken, managerCustomerId, clientCustomerId)).mapTo[Result]
+    val uploadedFile = request.body.file("file").get
+    (uploadActor ? CreateCampaign(uploadedFile.ref, uploadedFile.filename, refreshToken, managerCustomerId, clientCustomerId)).mapTo[Result]
   }
 }

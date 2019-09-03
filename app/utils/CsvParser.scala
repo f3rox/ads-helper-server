@@ -17,10 +17,10 @@ class CsvParser {
   def parseCsv(path: Path): List[Product] = {
     val startTime = System.currentTimeMillis()
     val source = Source.fromFile(path.toString)
-    val csvRowsList = source.getLines().toList
+    val csvRowsList = source.getLines().take(1000).toList
     source.close
     val productsList = csvRowsList.map(csvRowToProduct)
     println(s"${path.getFileName} parsed in ${(System.currentTimeMillis() - startTime) / 1000.0} sec")
-    productsList.take(1000)
+    productsList
   }
 }

@@ -45,8 +45,8 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Name
 
   def upload = Action.async(parse.multipartFormData) { request =>
     val refreshToken = request.body.asFormUrlEncoded("refresh_token").head
-    val managerCustomerId = 1169899225L
-    val clientCustomerId = 2515161029L
+    val managerCustomerId = request.body.asFormUrlEncoded("managerCustomerId").head.toLong
+    val clientCustomerId = request.body.asFormUrlEncoded("clientCustomerId").head.toLong
     val uploadedFile = request.body.file("file").get
     (uploadActor ? CreateCampaign(uploadedFile.ref, uploadedFile.filename, refreshToken, managerCustomerId, clientCustomerId)).mapTo[Result]
   }

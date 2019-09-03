@@ -21,6 +21,6 @@ class CsvParser {
     source.close
     val productsList = csvRowsList.map(csvRowToProduct)
     println(s"${path.getFileName} parsed in ${(System.currentTimeMillis() - startTime) / 1000.0} sec")
-    productsList
+    productsList.take(1000)
   }
 }

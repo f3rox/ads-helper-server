@@ -8,11 +8,15 @@ resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 
 resolvers += "Akka Snapshot Repository" at "http://repo.akka.io/snapshots/"
 
-scalaVersion := "2.12.2"
+scalaVersion := "2.12.7"
 
-libraryDependencies ++= Seq(jdbc, ehcache, ws, specs2 % Test, guice)
+//libraryDependencies ++= Seq(jdbc, ehcache, ws, guice)
+libraryDependencies ++= Seq(ws, guice)
 libraryDependencies += "com.google.api-ads" % "google-ads" % "4.1.0"
 libraryDependencies += "com.google.api-client" % "google-api-client" % "1.30.2"
-libraryDependencies += ws
-
-unmanagedResourceDirectories in Test <+= baseDirectory(_ / "target/web/public/test")
+libraryDependencies ++= List(
+  "com.typesafe.slick" %% "slick" % "3.3.0",
+  "org.slf4j" % "slf4j-nop" % "1.7.26",
+  "com.typesafe.slick" %% "slick-hikaricp" % "3.2.1",
+  "org.postgresql" % "postgresql" % "9.4-1206-jdbc42"
+)

@@ -8,3 +8,5 @@ DELETE        /auth                  controllers.MainController.deleteSession
 GET           /oauth2callback        controllers.MainController.oAuth2Callback
 GET           /authuserinfo          controllers.MainController.authUserInfo
 POST          /upload                controllers.MainController.upload
++nocsrf
+POST          /slick                 controllers.DatabaseController.slickTest

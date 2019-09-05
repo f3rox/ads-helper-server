@@ -1,42 +1,49 @@
 package controllers
 
-import javax.inject.Inject
+import actors.DatabaseActor.{AddUser, CreateUsersTable, DeleteUser, GetUsersAsJson}
+import akka.actor.ActorRef
+import akka.pattern.ask
+import akka.util.Timeout
+import javax.inject.{Inject, Named}
+import play.api.data.Form
+import play.api.data.Forms._
 import play.api.libs.concurrent.InjectedActorSupport
-import play.api.mvc.{AbstractController, ControllerComponents}
-import slick.jdbc.PostgresProfile.api._
-import tables.Users
+import play.api.mvc.{AbstractController, ControllerComponents, Result}
+import tables.User
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
-class DatabaseController @Inject()(components: ControllerComponents) extends AbstractController(components) with InjectedActorSupport {
+class DatabaseController @Inject()(@Named("database-actor") databaseActor: ActorRef, components: ControllerComponents) extends AbstractController(components) with InjectedActorSupport {
+  implicit val timeout: Timeout = 1.minute
 
-  def slickTest = Action { request =>
-    val db = Database.forConfig("postgresDb")
-    try {
-      val users = TableQuery[Users]
+  def createUsersTable = Action.async { _ =>
+    (databaseActor ? CreateUsersTable).mapTo[Result]
+  }
 
-      val setupAction: DBIO[Unit] = DBIO.seq(
-        users.schema.create
-      )
+  def addUser = Action.async(parse.formUrlEncoded) { request =>
+    val userForm: Form[User] = Form(
+      mapping(
+        "id" -> number,
+        "name" -> text,
+        "email" -> text,
+        "picture" -> text
+      )(User.apply)(User.unapply)
+    )
+    userForm.bindFromRequest(request.body).fold(
+      formWithErrors =>
+        Future.successful(BadRequest(formWithErrors.errors.map(error => s"${error.message} ${error.key}").mkString("\n"))),
+      user => (databaseActor ? AddUser(user)).mapTo[Result]
+    )
+  }
 
-      val setupFuture = db.run(setupAction)
-      val f = setupFuture.flatMap { _ =>
-        val insertAction: DBIO[Option[Int]] = users ++= Seq(
-          (234, "", "", "", ""),
-          (235, "", "", "", ""),
-          (236, "", "", "", "")
-        )
-        val insertAndPrintAction = insertAction.map { usersInsertResult =>
-          usersInsertResult.foreach { numRows =>
-            println(s"Inserted $numRows rows into the Users table")
-          }
-        }
+  def getUsers = Action.async {
+    (databaseActor ? GetUsersAsJson).mapTo[Result]
+  }
 
-        db.run(insertAndPrintAction.andThen(users.result)).map { users =>
-          users.foreach(println)
-        }
-      }
-    } finally db.close
-    Created("Table USERS created")
+  def deleteUser = Action.async(parse.formUrlEncoded) { request =>
+    val id = request.body.get("id").map(_.head)
+    if (id.isDefined) (databaseActor ? DeleteUser(id.get.toInt)).mapTo[Result]
+    else Future.successful(BadRequest("required id"))
   }
 }

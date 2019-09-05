@@ -8,7 +8,7 @@ import akka.util.Timeout
 import javax.inject._
 import play.api.libs.concurrent.InjectedActorSupport
 import play.api.mvc._
-import utils.{AppConfig, GoogleAuth}
+import services.{AppConfig, GoogleAuth}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._

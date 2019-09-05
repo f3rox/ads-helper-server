@@ -1,12 +1,17 @@
-# Routes
-# This file defines all application routes (Higher priority routes first)
-# ~~~~
-GET           /                      controllers.MainController.index
-GET           /auth                  controllers.MainController.auth
+# MainController
+GET           /                        controllers.MainController.index
+GET           /auth                    controllers.MainController.auth
 +nocsrf
-DELETE        /auth                  controllers.MainController.deleteSession
-GET           /oauth2callback        controllers.MainController.oAuth2Callback
-GET           /authuserinfo          controllers.MainController.authUserInfo
-POST          /upload                controllers.MainController.upload
+DELETE        /auth                    controllers.MainController.deleteSession
+GET           /oauth2callback          controllers.MainController.oAuth2Callback
+GET           /authuserinfo            controllers.MainController.authUserInfo
+POST          /upload                  controllers.MainController.upload
+
+# DatabaseController
 +nocsrf
-POST          /slick                 controllers.DatabaseController.slickTest
+POST          /createuserstable        controllers.DatabaseController.createUsersTable
++nocsrf
+POST          /users                   controllers.DatabaseController.addUser
+GET           /users                   controllers.DatabaseController.getUsers
++nocsrf
+DELETE        /users                   controllers.DatabaseController.deleteUser

@@ -16,5 +16,6 @@ class Module extends AbstractModule with AkkaGuiceSupport {
     bindActorFactory[GoogleAdsActor, GoogleAdsActor.Factory]
     bindActorFactory[KeywordsActor, KeywordsActor.Factory]
     bindActorFactory[ExpandedTextAdsActor, ExpandedTextAdsActor.Factory]
+    bindActor[DatabaseActor]("database-actor")
   }
 }

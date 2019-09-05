@@ -6,7 +6,7 @@ import akka.actor.Actor
 import com.google.inject.assistedinject.Assisted
 import javax.inject.Inject
 import play.api.libs.Files.TemporaryFile
-import utils.CsvParser
+import services.CsvParser
 
 object FileActor {
 

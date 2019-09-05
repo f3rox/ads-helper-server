@@ -5,7 +5,7 @@ import com.google.ads.googleads.lib.GoogleAdsClient
 import com.google.inject.assistedinject.Assisted
 import javax.inject.Inject
 import play.api.libs.concurrent.InjectedActorSupport
-import utils.GoogleAds
+import services.GoogleAds
 
 object GoogleAdsActor {
 

@@ -1,4 +1,4 @@
-package utils
+package services
 
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration

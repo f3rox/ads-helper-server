@@ -4,13 +4,13 @@ import akka.actor.Actor
 import com.google.ads.googleads.lib.GoogleAdsClient
 import com.google.inject.assistedinject.Assisted
 import javax.inject.Inject
-import utils.GoogleAds
+import services.GoogleAds
 
 object CampaignActor {
 
   sealed trait Message
 
- case class AddCampaign(budgetResourceName: String, name: String) extends Message
+  case class AddCampaign(budgetResourceName: String, name: String) extends Message
 
   trait Factory {
     def apply(googleAdsClient: GoogleAdsClient, customerId: Long): Actor

@@ -5,10 +5,10 @@ import akka.pattern.pipe
 import javax.inject.Inject
 import models.UserOptionalData
 import play.api.mvc.Results._
-import services.UsersService
+import services.DatabaseService
 import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
-import tables.User
+import tables.{Campaign, User}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -28,9 +28,11 @@ object DatabaseActor {
 
   case class UpdateUser(optionalUser: UserOptionalData) extends Message
 
+  case class AddCampaign(campaign: Campaign) extends Message
+
 }
 
-class DatabaseActor @Inject()(usersService: UsersService) extends Actor {
+class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
 
   import actors.DatabaseActor._
 
@@ -38,32 +40,37 @@ class DatabaseActor @Inject()(usersService: UsersService) extends Actor {
 
   override def receive: Receive = {
     case CreateUsersTable =>
-      usersService.createUsersTable
+      dbService.createUsersTable
         .map(_ => Ok("Table \"USERS\" created"))
         .recover { case exception => BadRequest(exception.getMessage) }
         .pipeTo(sender())
     case AddUser(user) =>
-      usersService.addUser(user)
+      dbService.addUser(user)
         .map(numRows => Ok(s"$numRows users added"))
         .recover { case exception => BadRequest(exception.getMessage) }
         .pipeTo(sender())
     case GetUsersAsJson =>
-      usersService.getUsersAsJson.map(Ok(_)).pipeTo(sender())
+      dbService.getUsersAsJson.map(Ok(_)).pipeTo(sender())
     case DeleteUser(id) =>
-      usersService.deleteUser(id).map(numRows =>
+      dbService.deleteUser(id).map(numRows =>
         if (numRows > 0) Ok(s"user with id:$id deleted")
         else BadRequest(s"user with id:$id does not exists")).pipeTo(sender())
     case GetUser(id) =>
-      usersService.getUser(id)
+      dbService.getUser(id)
         .map(user => Ok(user.toJson))
         .recover { case _ => BadRequest(s"user with id:$id does not exists") }
         .pipeTo(sender())
     case UpdateUser(optionalUser) =>
-      if (optionalUser.isDefined) usersService.updateUser(optionalUser).map(numRows =>
+      if (optionalUser.isDefined) dbService.updateUser(optionalUser).map(numRows =>
         if (numRows > 0) Ok(s"user with id:${optionalUser.id} updated")
         else BadRequest(s"user with id:${optionalUser.id} does not exists")
       ).pipeTo(sender())
       else sender() ! BadRequest("nothing to update")
+    case AddCampaign(campaign) =>
+      dbService.addCampaign(campaign)
+        .map(numRows => Ok(s"$numRows campaigns added"))
+        .recover { case exception => BadRequest(exception.getMessage) }
+        .pipeTo(sender())
   }
 
   override def postStop(): Unit = db.close()

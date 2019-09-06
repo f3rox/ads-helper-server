@@ -10,7 +10,7 @@ import play.api.data.Form
 import play.api.data.Forms._
 import play.api.libs.concurrent.InjectedActorSupport
 import play.api.mvc.{AbstractController, ControllerComponents, Result}
-import tables.User
+import tables.{Campaign, User}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -69,6 +69,11 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
       formErrorsHandler,
       optionalUser => (databaseActor ? UpdateUser(optionalUser)).mapTo[Result]
     )
+  }
+
+  def addCampaign = Action {
+    (databaseActor ? AddCampaign(Campaign("resourceName", 129, 2342343, 10))).mapTo[Result]
+    Ok("")
   }
 
   private def formErrorsHandler[T](formWithErrors: Form[T]): Future[Result] =

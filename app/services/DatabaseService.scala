@@ -5,14 +5,15 @@ import models.UserOptionalData
 import play.api.libs.json.{JsValue, Json}
 import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
-import tables.{User, Users}
+import tables.{Campaign, Campaigns, User, Users}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @Singleton
-class UsersService {
+class DatabaseService {
   val users = TableQuery[Users]
+  val campaigns = TableQuery[Campaigns]
 
   def createUsersTable(implicit db: PostgresProfile.backend.Database): Future[Unit] = db.run(users.schema.create)
 
@@ -34,4 +35,6 @@ class UsersService {
           optionalUser.picture.getOrElse(existingUser.picture)))))
       .recover { case _ => 0 }
   }
+
+  def addCampaign(campaign: Campaign)(implicit db: PostgresProfile.backend.Database): Future[Int] = db.run(campaigns += campaign)
 }

@@ -17,3 +17,5 @@ POST          /users                   controllers.DatabaseController.addUser
 DELETE        /users/:id               controllers.DatabaseController.deleteUser(id:String)
 +nocsrf
 PATCH         /users                   controllers.DatabaseController.updateUser
++nocsrf
+POST          /campaigns               controllers.DatabaseController.addCampaign

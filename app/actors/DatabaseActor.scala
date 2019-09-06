@@ -3,6 +3,7 @@ package actors
 import akka.actor.Actor
 import akka.pattern.pipe
 import javax.inject.Inject
+import models.UserOptionalData
 import play.api.mvc.Results._
 import services.UsersService
 import slick.jdbc.PostgresProfile
@@ -21,7 +22,11 @@ object DatabaseActor {
 
   case object GetUsersAsJson extends Message
 
+  case class GetUser(id: Int) extends Message
+
   case class DeleteUser(id: Int) extends Message
+
+  case class UpdateUser(optionalUser: UserOptionalData) extends Message
 
 }
 
@@ -47,7 +52,18 @@ class DatabaseActor @Inject()(usersService: UsersService) extends Actor {
     case DeleteUser(id) =>
       usersService.deleteUser(id).map(numRows =>
         if (numRows > 0) Ok(s"user with id:$id deleted")
-        else BadRequest("user does not exists")).pipeTo(sender())
+        else BadRequest(s"user with id:$id does not exists")).pipeTo(sender())
+    case GetUser(id) =>
+      usersService.getUser(id)
+        .map(user => Ok(user.toJson))
+        .recover { case _ => BadRequest(s"user with id:$id does not exists") }
+        .pipeTo(sender())
+    case UpdateUser(optionalUser) =>
+      if (optionalUser.isDefined) usersService.updateUser(optionalUser).map(numRows =>
+        if (numRows > 0) Ok(s"user with id:${optionalUser.id} updated")
+        else BadRequest(s"user with id:${optionalUser.id} does not exists")
+      ).pipeTo(sender())
+      else sender() ! BadRequest("nothing to update")
   }
 
   override def postStop(): Unit = db.close()

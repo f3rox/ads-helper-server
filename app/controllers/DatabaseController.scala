@@ -1,10 +1,11 @@
 package controllers
 
-import actors.DatabaseActor.{AddUser, CreateUsersTable, DeleteUser, GetUsersAsJson}
+import actors.DatabaseActor._
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 import javax.inject.{Inject, Named}
+import models.UserOptionalData
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.libs.concurrent.InjectedActorSupport
@@ -13,11 +14,12 @@ import tables.User
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.util.{Failure, Success, Try}
 
 class DatabaseController @Inject()(@Named("database-actor") databaseActor: ActorRef, components: ControllerComponents) extends AbstractController(components) with InjectedActorSupport {
   implicit val timeout: Timeout = 1.minute
 
-  def createUsersTable = Action.async { _ =>
+  def createUsersTable = Action.async {
     (databaseActor ? CreateUsersTable).mapTo[Result]
   }
 
@@ -26,13 +28,12 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
       mapping(
         "id" -> number,
         "name" -> text,
-        "email" -> text,
+        "email" -> email,
         "picture" -> text
       )(User.apply)(User.unapply)
     )
     userForm.bindFromRequest(request.body).fold(
-      formWithErrors =>
-        Future.successful(BadRequest(formWithErrors.errors.map(error => s"${error.message} ${error.key}").mkString("\n"))),
+      formErrorsHandler,
       user => (databaseActor ? AddUser(user)).mapTo[Result]
     )
   }
@@ -41,9 +42,35 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
     (databaseActor ? GetUsersAsJson).mapTo[Result]
   }
 
-  def deleteUser = Action.async(parse.formUrlEncoded) { request =>
-    val id = request.body.get("id").map(_.head)
-    if (id.isDefined) (databaseActor ? DeleteUser(id.get.toInt)).mapTo[Result]
-    else Future.successful(BadRequest("required id"))
+  def getUser(id: String) = Action.async {
+    Try(id.toInt) match {
+      case Success(userId) => (databaseActor ? GetUser(userId)).mapTo[Result]
+      case Failure(exception) => Future.successful(BadRequest(exception.toString))
+    }
   }
+
+  def deleteUser(id: String) = Action.async {
+    Try(id.toInt) match {
+      case Success(userId) => (databaseActor ? DeleteUser(userId)).mapTo[Result]
+      case Failure(exception) => Future.successful(BadRequest(exception.toString))
+    }
+  }
+
+  def updateUser = Action.async(parse.formUrlEncoded) { request =>
+    val userFormOptional = Form(
+      mapping(
+        "id" -> number,
+        "name" -> optional(text),
+        "email" -> optional(email),
+        "picture" -> optional(text)
+      )(UserOptionalData.apply)(UserOptionalData.unapply)
+    )
+    userFormOptional.bindFromRequest(request.body).fold(
+      formErrorsHandler,
+      optionalUser => (databaseActor ? UpdateUser(optionalUser)).mapTo[Result]
+    )
+  }
+
+  private def formErrorsHandler[T](formWithErrors: Form[T]): Future[Result] =
+    Future.successful(BadRequest(formWithErrors.errors.map(error => s"${error.message} ${error.key}").mkString("\n")))
 }

@@ -1,17 +1,19 @@
 # MainController
 GET           /                        controllers.MainController.index
 GET           /auth                    controllers.MainController.auth
-+nocsrf
-DELETE        /auth                    controllers.MainController.deleteSession
 GET           /oauth2callback          controllers.MainController.oAuth2Callback
 GET           /authuserinfo            controllers.MainController.authUserInfo
 POST          /upload                  controllers.MainController.upload
-
++nocsrf
+DELETE        /auth                    controllers.MainController.deleteSession
 # DatabaseController
+GET           /users                   controllers.DatabaseController.getUsers
+GET           /users/:id               controllers.DatabaseController.getUser(id:String)
 +nocsrf
 POST          /createuserstable        controllers.DatabaseController.createUsersTable
 +nocsrf
 POST          /users                   controllers.DatabaseController.addUser
-GET           /users                   controllers.DatabaseController.getUsers
 +nocsrf
-DELETE        /users                   controllers.DatabaseController.deleteUser
+DELETE        /users/:id               controllers.DatabaseController.deleteUser(id:String)
++nocsrf
+PATCH         /users                   controllers.DatabaseController.updateUser

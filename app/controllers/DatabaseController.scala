@@ -71,9 +71,27 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
     )
   }
 
-  def addCampaign = Action {
-    (databaseActor ? AddCampaign(Campaign("resourceName", 129, 2342343, 10))).mapTo[Result]
-    Ok("")
+  def createCampaignsTable = Action.async {
+    (databaseActor ? CreateCampaignsTable).mapTo[Result]
+  }
+
+  def addCampaign = Action.async(parse.formUrlEncoded) { request =>
+    val campaignForm: Form[Campaign] = Form(
+      mapping(
+        "resourceName" -> text,
+        "userId" -> number,
+        "customerId" -> longNumber,
+        "size" -> number
+      )(Campaign.apply)(Campaign.unapply)
+    )
+    campaignForm.bindFromRequest(request.body).fold(
+      formErrorsHandler,
+      campaign => (databaseActor ? AddCampaign(campaign)).mapTo[Result]
+    )
+  }
+
+  def deleteCampaign(resourceName: String) = Action.async {
+    (databaseActor ? DeleteCampaign(resourceName)).mapTo[Result]
   }
 
   private def formErrorsHandler[T](formWithErrors: Form[T]): Future[Result] =

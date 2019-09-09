@@ -1,21 +1,25 @@
 # MainController
-GET           /                        controllers.MainController.index
-GET           /auth                    controllers.MainController.auth
-GET           /oauth2callback          controllers.MainController.oAuth2Callback
-GET           /authuserinfo            controllers.MainController.authUserInfo
-POST          /upload                  controllers.MainController.upload
+GET           /                               controllers.MainController.index
+GET           /auth                           controllers.MainController.auth
+GET           /oauth2callback                 controllers.MainController.oAuth2Callback
+GET           /authuserinfo                   controllers.MainController.authUserInfo
+POST          /upload                         controllers.MainController.upload
 +nocsrf
-DELETE        /auth                    controllers.MainController.deleteSession
+DELETE        /auth                           controllers.MainController.deleteSession
 # DatabaseController
-GET           /users                   controllers.DatabaseController.getUsers
-GET           /users/:id               controllers.DatabaseController.getUser(id:String)
+GET           /users                          controllers.DatabaseController.getUsers
+GET           /users/:id                      controllers.DatabaseController.getUser(id:String)
 +nocsrf
-POST          /createuserstable        controllers.DatabaseController.createUsersTable
+PUT           /users                          controllers.DatabaseController.createUsersTable
 +nocsrf
-POST          /users                   controllers.DatabaseController.addUser
+POST          /users                          controllers.DatabaseController.addUser
 +nocsrf
-DELETE        /users/:id               controllers.DatabaseController.deleteUser(id:String)
+DELETE        /users/:id                      controllers.DatabaseController.deleteUser(id:String)
 +nocsrf
-PATCH         /users                   controllers.DatabaseController.updateUser
+PATCH         /users                          controllers.DatabaseController.updateUser
 +nocsrf
-POST          /campaigns               controllers.DatabaseController.addCampaign
+PUT           /campaigns                      controllers.DatabaseController.createCampaignsTable
++nocsrf
+POST          /campaigns                      controllers.DatabaseController.addCampaign
++nocsrf
+DELETE        /campaigns/:resourceName        controllers.DatabaseController.deleteCampaign(resourceName:String)

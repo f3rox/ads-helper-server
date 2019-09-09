@@ -28,7 +28,11 @@ object DatabaseActor {
 
   case class UpdateUser(optionalUser: UserOptionalData) extends Message
 
+  case object CreateCampaignsTable extends Message
+
   case class AddCampaign(campaign: Campaign) extends Message
+
+  case class DeleteCampaign(resourceName: String) extends Message
 
 }
 
@@ -52,9 +56,12 @@ class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
     case GetUsersAsJson =>
       dbService.getUsersAsJson.map(Ok(_)).pipeTo(sender())
     case DeleteUser(id) =>
-      dbService.deleteUser(id).map(numRows =>
-        if (numRows > 0) Ok(s"user with id:$id deleted")
-        else BadRequest(s"user with id:$id does not exists")).pipeTo(sender())
+      dbService.deleteUser(id)
+        .map(numRows =>
+          if (numRows > 0) Ok(s"user with id:$id deleted")
+          else BadRequest(s"user with id:$id does not exists"))
+        .recover { case exception => BadRequest(exception.getMessage) }
+        .pipeTo(sender())
     case GetUser(id) =>
       dbService.getUser(id)
         .map(user => Ok(user.toJson))
@@ -66,9 +73,22 @@ class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
         else BadRequest(s"user with id:${optionalUser.id} does not exists")
       ).pipeTo(sender())
       else sender() ! BadRequest("nothing to update")
+    case CreateCampaignsTable =>
+      dbService.createCampaignsTable
+        .map(_ => Ok("Table \"CAMPAIGNS\" created"))
+        .recover { case exception => BadRequest(exception.getMessage) }
+        .pipeTo(sender())
     case AddCampaign(campaign) =>
       dbService.addCampaign(campaign)
         .map(numRows => Ok(s"$numRows campaigns added"))
+        .recover { case exception => BadRequest(exception.getMessage) }
+        .pipeTo(sender())
+    case DeleteCampaign(resourceName) =>
+      dbService.deleteCampaign(resourceName)
+        .map {
+          case numRows if (numRows > 0) => Ok("campaign \"" + resourceName + "\" deleted")
+          case _ => BadRequest("campaign \"" + resourceName + "\" does not exists")
+        }
         .recover { case exception => BadRequest(exception.getMessage) }
         .pipeTo(sender())
   }

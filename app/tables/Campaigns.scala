@@ -16,5 +16,5 @@ class Campaigns(tag: Tag) extends Table[Campaign](tag, "CAMPAIGNS") {
 
   override def * : ProvenShape[Campaign] = (resourceName, userId, customerId, size).mapTo[Campaign]
 
-  def user: ForeignKeyQuery[Users, User] = foreignKey("USER_FK", userId, TableQuery[Users])(_.id)
+  def user: ForeignKeyQuery[Users, User] = foreignKey("USER_FK", userId, TableQuery[Users])(_.id, onDelete = ForeignKeyAction.Cascade)
 }

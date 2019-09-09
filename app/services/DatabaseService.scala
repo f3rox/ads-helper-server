@@ -36,5 +36,9 @@ class DatabaseService {
       .recover { case _ => 0 }
   }
 
+  def createCampaignsTable(implicit db: PostgresProfile.backend.Database): Future[Unit] = db.run(campaigns.schema.create)
+
   def addCampaign(campaign: Campaign)(implicit db: PostgresProfile.backend.Database): Future[Int] = db.run(campaigns += campaign)
+
+  def deleteCampaign(resourceName: String)(implicit db: PostgresProfile.backend.Database): Future[Int] = db.run(campaigns.filter(_.resourceName === resourceName).delete)
 }

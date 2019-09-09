@@ -6,11 +6,15 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 import javax.inject._
+import play.api.data.Form
+import play.api.data.Forms._
 import play.api.libs.concurrent.InjectedActorSupport
 import play.api.mvc._
 import services.{AppConfig, GoogleAuth}
+import utils.Utils.formErrorsHandler
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 @Singleton
@@ -44,10 +48,20 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Name
   }
 
   def upload = Action.async(parse.multipartFormData) { request =>
-    val refreshToken = request.body.asFormUrlEncoded("refresh_token").head
-    val managerCustomerId = request.body.asFormUrlEncoded("managerCustomerId").head.toLong
-    val clientCustomerId = request.body.asFormUrlEncoded("clientCustomerId").head.toLong
-    val uploadedFile = request.body.file("file").get
-    (uploadActor ? CreateCampaign(uploadedFile.ref, uploadedFile.filename, refreshToken, managerCustomerId, clientCustomerId)).mapTo[Result]
+    request.session.data.get("refresh_token").map(refreshToken => {
+      case class CustomerIDs(managerCustomerId: Long, clientCustomerId: Long)
+      val customerIDsForm: Form[CustomerIDs] = Form(
+        mapping(
+          "managerCustomerId" -> longNumber,
+          "clientCustomerId" -> longNumber
+        )(CustomerIDs.apply)(CustomerIDs.unapply)
+      )
+      customerIDsForm.bindFromRequest(request.body.asFormUrlEncoded).fold(
+        formErrorsHandler,
+        customerIDs => {
+          request.body.file("file").map(uploadedFile => (uploadActor ? CreateCampaign(uploadedFile.ref, uploadedFile.filename, refreshToken, customerIDs.managerCustomerId, customerIDs.clientCustomerId)).mapTo[Result]
+          ).getOrElse(Future.successful(BadRequest("file is missed")))
+        })
+    }).getOrElse(Future.successful(Unauthorized))
   }
 }

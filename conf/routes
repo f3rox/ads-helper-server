@@ -3,6 +3,7 @@ GET           /                               controllers.MainController.index
 GET           /auth                           controllers.MainController.auth
 GET           /oauth2callback                 controllers.MainController.oAuth2Callback
 GET           /authuserinfo                   controllers.MainController.authUserInfo
++nocsrf
 POST          /upload                         controllers.MainController.upload
 +nocsrf
 DELETE        /auth                           controllers.MainController.deleteSession

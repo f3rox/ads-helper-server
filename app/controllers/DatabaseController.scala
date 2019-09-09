@@ -11,6 +11,7 @@ import play.api.data.Forms._
 import play.api.libs.concurrent.InjectedActorSupport
 import play.api.mvc.{AbstractController, ControllerComponents, Result}
 import tables.{Campaign, User}
+import utils.Utils._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -105,6 +106,6 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
     }
   }
 
-  private def formErrorsHandler[T](formWithErrors: Form[T]): Future[Result] =
-    Future.successful(BadRequest(formWithErrors.errors.map(error => s"${error.message} ${error.key}").mkString("\n")))
+  //  private def formErrorsHandler[T](formWithErrors: Form[T]): Future[Result] =
+  //    Future.successful(BadRequest(formWithErrors.errors.map(error => s"${error.message} ${error.key}").mkString("\n")))
 }

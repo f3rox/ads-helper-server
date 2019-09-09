@@ -21,9 +21,11 @@ class DatabaseService {
 
   def getUsers(implicit db: PostgresProfile.backend.Database): Future[List[User]] = db.run(users.result).map(_.toList)
 
-  def getUsersAsJson(implicit db: PostgresProfile.backend.Database): Future[JsValue] = getUsers.map(_.map(_.toJson)).map(Json.toJson(_))
+  def getUsersAsJson(implicit db: PostgresProfile.backend.Database): Future[JsValue] = getUsers.map(usersList => Json.toJson(usersList.map(_.toJson)))
 
   def getUser(id: Int)(implicit db: PostgresProfile.backend.Database): Future[User] = db.run(users.filter(_.id === id).result).map(_.head)
+
+  def getUserAsJson(id: Int)(implicit db: PostgresProfile.backend.Database): Future[JsValue] = getUser(id).map(_.toJson)
 
   def deleteUser(id: Int)(implicit db: PostgresProfile.backend.Database): Future[Int] = db.run(users.filter(_.id === id).delete)
 
@@ -41,4 +43,10 @@ class DatabaseService {
   def addCampaign(campaign: Campaign)(implicit db: PostgresProfile.backend.Database): Future[Int] = db.run(campaigns += campaign)
 
   def deleteCampaign(resourceName: String)(implicit db: PostgresProfile.backend.Database): Future[Int] = db.run(campaigns.filter(_.resourceName === resourceName).delete)
+
+  def getCampaigns(implicit db: PostgresProfile.backend.Database): Future[List[Campaign]] = db.run(campaigns.result).map(_.toList)
+
+  def getCampaignsAsJson(implicit db: PostgresProfile.backend.Database): Future[JsValue] = getCampaigns.map(campaignsList => Json.toJson(campaignsList.map(_.toJson)))
+
+  //    getCampaigns.map(_.map(_.toJson)).map(Json.toJson(_))
 }

@@ -9,6 +9,7 @@ DELETE        /auth                           controllers.MainController.deleteS
 # DatabaseController
 GET           /users                          controllers.DatabaseController.getUsers
 GET           /users/:id                      controllers.DatabaseController.getUser(id:String)
+GET           /campaigns                      controllers.DatabaseController.getCampaigns
 +nocsrf
 PUT           /users                          controllers.DatabaseController.createUsersTable
 +nocsrf

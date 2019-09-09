@@ -94,6 +94,10 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
     (databaseActor ? DeleteCampaign(resourceName)).mapTo[Result]
   }
 
+  def getCampaigns = Action.async {
+    (databaseActor ? GetCampaignsAsJson).mapTo[Result]
+  }
+
   private def formErrorsHandler[T](formWithErrors: Form[T]): Future[Result] =
     Future.successful(BadRequest(formWithErrors.errors.map(error => s"${error.message} ${error.key}").mkString("\n")))
 }

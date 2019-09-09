@@ -34,6 +34,8 @@ object DatabaseActor {
 
   case class DeleteCampaign(resourceName: String) extends Message
 
+  case object GetCampaignsAsJson extends Message
+
 }
 
 class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
@@ -92,6 +94,8 @@ class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
         }
         .recover { case exception => BadRequest(exception.getMessage) }
         .pipeTo(sender())
+    case GetCampaignsAsJson =>
+      dbService.getCampaignsAsJson.map(Ok(_)).pipeTo(sender())
   }
 
   override def postStop(): Unit = db.close()

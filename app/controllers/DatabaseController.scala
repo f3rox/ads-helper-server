@@ -98,6 +98,13 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
     (databaseActor ? GetCampaignsAsJson).mapTo[Result]
   }
 
+  def getCampaignsByUserId(id: String) = Action.async {
+    Try(id.toInt) match {
+      case Success(userId) => (databaseActor ? GetCampaignsByUserId(userId)).mapTo[Result]
+      case Failure(exception) => Future.successful(BadRequest(exception.toString))
+    }
+  }
+
   private def formErrorsHandler[T](formWithErrors: Form[T]): Future[Result] =
     Future.successful(BadRequest(formWithErrors.errors.map(error => s"${error.message} ${error.key}").mkString("\n")))
 }

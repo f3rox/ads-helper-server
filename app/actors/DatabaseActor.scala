@@ -36,6 +36,8 @@ object DatabaseActor {
 
   case object GetCampaignsAsJson extends Message
 
+  case class GetCampaignsByUserId(userId: Int) extends Message
+
 }
 
 class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
@@ -96,6 +98,8 @@ class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
         .pipeTo(sender())
     case GetCampaignsAsJson =>
       dbService.getCampaignsAsJson.map(Ok(_)).pipeTo(sender())
+    case GetCampaignsByUserId(userId) =>
+      dbService.getCampaignsByUserIdAsJson(userId).map(Ok(_)).pipeTo(sender())
   }
 
   override def postStop(): Unit = db.close()

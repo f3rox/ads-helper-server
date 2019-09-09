@@ -54,7 +54,7 @@ class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
         .pipeTo(sender())
     case AddUser(user) =>
       dbService.addUser(user)
-        .map(_ => Ok("new user added"))
+        .map(_ => Ok(s"new user with id:${user.id} added"))
         .recover { case exception => BadRequest(exception.getMessage) }
         .pipeTo(sender())
     case GetUsersAsJson =>
@@ -80,7 +80,7 @@ class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
       else sender() ! BadRequest("nothing to update")
     case CreateCampaignsTable =>
       dbService.createCampaignsTable
-        .map(_ => Ok("Table \"CAMPAIGNS\" created"))
+        .map(_ => Ok("table \"CAMPAIGNS\" created"))
         .recover { case exception => BadRequest(exception.getMessage) }
         .pipeTo(sender())
     case AddCampaign(campaign) =>

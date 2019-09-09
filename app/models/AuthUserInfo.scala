@@ -3,10 +3,11 @@ package models
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Session
 
-case class AuthUserInfo(name: String, email: String, picture: String, accessToken: String, refreshToken: String) {
+case class AuthUserInfo(id: String, name: String, email: String, picture: String, accessToken: String, refreshToken: String) {
   def toJson: JsValue = Json.obj(
     "access_token" -> accessToken,
     "refresh_token" -> refreshToken,
+    "id" -> id,
     "name" -> name,
     "email" -> email,
     "picture" -> picture
@@ -14,6 +15,7 @@ case class AuthUserInfo(name: String, email: String, picture: String, accessToke
 
   def toSession: Session = {
     val dataMap: Map[String, String] = Map(
+      "id" -> id,
       "name" -> name,
       "email" -> email,
       "picture" -> picture,

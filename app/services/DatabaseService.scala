@@ -17,7 +17,7 @@ class DatabaseService {
 
   def createUsersTable(implicit db: PostgresProfile.backend.Database): Future[Unit] = db.run(users.schema.create)
 
-  def addUser(user: User)(implicit db: PostgresProfile.backend.Database): Future[Int] = db.run(users += user)
+  def addUser(user: User)(implicit db: PostgresProfile.backend.Database): Future[Int] = db.run(users.returning(users.map(_.id)) += user)
 
   def getUsers(implicit db: PostgresProfile.backend.Database): Future[List[User]] = db.run(users.result).map(_.toList)
 

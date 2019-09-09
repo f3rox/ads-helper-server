@@ -28,7 +28,8 @@ class GoogleAuth @Inject()(@Named("auth-actor") authActor: ActorRef, ws: WSClien
       val name = (response.json \ "name").as[String]
       val email = (response.json \ "email").as[String]
       val picture = (response.json \ "picture").as[String]
-      UserInfo(name, email, picture)
+      val id = (response.json \ "id").as[String]
+      UserInfo(id, name, email, picture)
     }, 10.seconds)
   }
 
@@ -37,6 +38,7 @@ class GoogleAuth @Inject()(@Named("auth-actor") authActor: ActorRef, ws: WSClien
     AuthUserInfo(
       accessToken = sessionData.getOrElse("access_token", ""),
       refreshToken = sessionData.getOrElse("refresh_token", ""),
+      id = sessionData.getOrElse("id", ""),
       name = sessionData.getOrElse("name", ""),
       email = sessionData.getOrElse("email", ""),
       picture = sessionData.getOrElse("picture", "")

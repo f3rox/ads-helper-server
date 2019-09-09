@@ -45,21 +45,22 @@ class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
   override def receive: Receive = {
     case CreateUsersTable =>
       dbService.createUsersTable
-        .map(_ => Ok("Table \"USERS\" created"))
+        .map(_ => Ok("table \"USERS\" created"))
         .recover { case exception => BadRequest(exception.getMessage) }
         .pipeTo(sender())
     case AddUser(user) =>
       dbService.addUser(user)
-        .map(numRows => Ok(s"$numRows users added"))
+        .map(_ => Ok("new user added"))
         .recover { case exception => BadRequest(exception.getMessage) }
         .pipeTo(sender())
     case GetUsersAsJson =>
       dbService.getUsersAsJson.map(Ok(_)).pipeTo(sender())
     case DeleteUser(id) =>
       dbService.deleteUser(id)
-        .map(numRows =>
-          if (numRows > 0) Ok(s"user with id:$id deleted")
-          else BadRequest(s"user with id:$id does not exists"))
+        .map {
+          case numRows if numRows > 0 => Ok(s"user with id:$id deleted")
+          case _ => BadRequest(s"user with id:$id does not exists")
+        }
         .recover { case exception => BadRequest(exception.getMessage) }
         .pipeTo(sender())
     case GetUser(id) =>
@@ -68,10 +69,10 @@ class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
         .recover { case _ => BadRequest(s"user with id:$id does not exists") }
         .pipeTo(sender())
     case UpdateUser(optionalUser) =>
-      if (optionalUser.isDefined) dbService.updateUser(optionalUser).map(numRows =>
-        if (numRows > 0) Ok(s"user with id:${optionalUser.id} updated")
-        else BadRequest(s"user with id:${optionalUser.id} does not exists")
-      ).pipeTo(sender())
+      if (optionalUser.isDefined) dbService.updateUser(optionalUser).map {
+        case numRows if numRows > 0 => Ok(s"user with id:${optionalUser.id} updated")
+        case _ => BadRequest(s"user with id:${optionalUser.id} does not exists")
+      }.pipeTo(sender())
       else sender() ! BadRequest("nothing to update")
     case CreateCampaignsTable =>
       dbService.createCampaignsTable
@@ -86,7 +87,7 @@ class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
     case DeleteCampaign(resourceName) =>
       dbService.deleteCampaign(resourceName)
         .map {
-          case numRows if (numRows > 0) => Ok("campaign \"" + resourceName + "\" deleted")
+          case numRows if numRows > 0 => Ok("campaign \"" + resourceName + "\" deleted")
           case _ => BadRequest("campaign \"" + resourceName + "\" does not exists")
         }
         .recover { case exception => BadRequest(exception.getMessage) }

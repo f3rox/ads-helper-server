@@ -3,6 +3,7 @@ package actors
 import actors.AdGroupsActor.AddAdGroups
 import actors.CampaignActor.AddCampaign
 import actors.CampaignBudgetActor.AddCampaignBudget
+import actors.DatabaseActor.AddUserWithCampaign
 import actors.ExpandedTextAdsActor.AddExpandedTextAds
 import actors.FileActor.ParseFile
 import actors.GoogleAdsActor._
@@ -12,9 +13,10 @@ import akka.actor.{Actor, ActorRef}
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import javax.inject.{Inject, Named}
-import models.Product
+import models.{AuthUser, Product}
 import play.api.libs.Files.TemporaryFile
 import play.api.mvc.Results._
+import tables.Campaign
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -24,22 +26,22 @@ object UploadActor {
 
   sealed trait Message
 
-  case class CreateCampaign(uploadedFile: TemporaryFile, fileName: String, refreshToken: String, managerCustomerId: Long, clientCustomerId: Long) extends Message
+  case class CreateCampaign(uploadedFile: TemporaryFile, fileName: String, authUser: AuthUser, managerCustomerId: Long, clientCustomerId: Long) extends Message
 
 }
 
-class UploadActor @Inject()(@Named("root-actor") rootActor: ActorRef) extends Actor {
+class UploadActor @Inject()(@Named("root-actor") rootActor: ActorRef, @Named("database-actor") databaseActor: ActorRef) extends Actor {
 
   import UploadActor._
 
   implicit val timeout: Timeout = 1.minute
 
   override def receive: Receive = {
-    case CreateCampaign(uploadedFile, fileName, refreshToken, managerCustomerId, clientCustomerId) =>
+    case CreateCampaign(uploadedFile, fileName, authUser, managerCustomerId, clientCustomerId) =>
       val productsFuture = (rootActor ? GetFileActor(fileName)).mapTo[ActorRef].flatMap { fileActor =>
         (fileActor ? ParseFile(uploadedFile)).mapTo[List[Product]]
       }
-      val googleAdsActorFuture = (rootActor ? GetGoogleAdsActor(refreshToken, managerCustomerId, clientCustomerId)).mapTo[ActorRef]
+      val googleAdsActorFuture = (rootActor ? GetGoogleAdsActor(authUser.refreshToken, managerCustomerId, clientCustomerId)).mapTo[ActorRef]
       googleAdsActorFuture.flatMap { googleAdsActor =>
         val campaignBudgetActorFuture = (googleAdsActor ? GetCampaignBudgetActor).mapTo[ActorRef]
         val campaignActorFuture = (googleAdsActor ? GetCampaignActor).mapTo[ActorRef]
@@ -64,6 +66,9 @@ class UploadActor @Inject()(@Named("root-actor") rootActor: ActorRef) extends Ac
           _ <- expandedTextAdsActorFuture.flatMap { expandedTextAdsActor =>
             expandedTextAdsActor ? AddExpandedTextAds(productsWithAdGroups)
           }
+          user = authUser.toUser
+          campaign = Campaign(campaignResourceName, user.id, clientCustomerId, products.size)
+          _ = databaseActor ! AddUserWithCampaign(user, campaign)
         } yield Created("Campaign created")
       }.fallbackTo(Future.successful(InternalServerError("Error"))).pipeTo(sender())
   }

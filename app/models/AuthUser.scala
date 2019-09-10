@@ -3,7 +3,7 @@ package models
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Session
 
-case class AuthUserInfo(id: String, name: String, email: String, picture: String, accessToken: String, refreshToken: String) {
+case class AuthUser(id: String, name: String, email: String, picture: String, accessToken: String, refreshToken: String) {
   def toJson: JsValue = Json.obj(
     "access_token" -> accessToken,
     "refresh_token" -> refreshToken,
@@ -25,5 +25,7 @@ case class AuthUserInfo(id: String, name: String, email: String, picture: String
     Session(data = dataMap)
   }
 
-  def isDefined: Boolean = name != "" && email != "" && picture != "" && accessToken != "" && refreshToken != ""
+  def toUser: User = User(id, name, email, picture)
+
+  def isDefined: Boolean = !refreshToken.isEmpty && !accessToken.isEmpty && !name.isEmpty && !email.isEmpty && !picture.isEmpty && !id.isEmpty
 }

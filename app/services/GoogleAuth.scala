@@ -10,7 +10,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.google.auth.oauth2.{ClientId, UserAuthorizer}
 import javax.inject.{Inject, Named, Singleton}
-import models.{AuthUserInfo, UserInfo}
+import models.{AuthUser, User}
 import play.api.libs.ws.WSClient
 import play.api.mvc.Session
 
@@ -23,19 +23,19 @@ import scala.concurrent.duration._
 class GoogleAuth @Inject()(@Named("auth-actor") authActor: ActorRef, ws: WSClient, appConfig: AppConfig) {
   implicit val timeout: Timeout = 10.seconds
 
-  def getUserInfo(accessToken: String): UserInfo = {
+  def getUserInfo(accessToken: String): User = {
     Await.result(ws.url("https://www.googleapis.com/oauth2/v2/userinfo").addQueryStringParameters("access_token" -> accessToken).get().map { response =>
       val name = (response.json \ "name").as[String]
       val email = (response.json \ "email").as[String]
       val picture = (response.json \ "picture").as[String]
       val id = (response.json \ "id").as[String]
-      UserInfo(id, name, email, picture)
+      User(id, name, email, picture)
     }, 10.seconds)
   }
 
-  def getAuthUserInfoFromSession(session: Session): AuthUserInfo = {
+  def getAuthUserDataFromSession(session: Session): AuthUser = {
     val sessionData = session.data
-    AuthUserInfo(
+    AuthUser(
       accessToken = sessionData.getOrElse("access_token", ""),
       refreshToken = sessionData.getOrElse("refresh_token", ""),
       id = sessionData.getOrElse("id", ""),
@@ -45,7 +45,7 @@ class GoogleAuth @Inject()(@Named("auth-actor") authActor: ActorRef, ws: WSClien
     )
   }
 
-  def getAuthUserInfoFromCallback(state: String, code: String): AuthUserInfo = {
+  def getAuthUserInfoFromCallback(state: String, code: String): AuthUser = {
     val userAuthorizer = getUserAuthorizer(state)
     val userCredentials = userAuthorizer.getCredentialsFromCode(code, URI.create(appConfig.getServerBaseUrl))
     val accessToken = userCredentials.getAccessToken.getTokenValue

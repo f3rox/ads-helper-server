@@ -37,20 +37,20 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Name
     else BadRequest
   }
 
-  def authUserInfo = Action { request =>
-    val authUserInfo = googleAuth.getAuthUserInfoFromSession(request.session)
-    if (authUserInfo.isDefined) Ok(authUserInfo.toJson)
+  def authUserData = Action { request =>
+    val authUserData = googleAuth.getAuthUserDataFromSession(request.session)
+    if (authUserData.isDefined) Ok(authUserData.toJson)
     else Unauthorized
   }
 
   def upload = Action.async(parse.multipartFormData) { request =>
-    request.session.data.get("refresh_token").map(refreshToken => {
-      customerIDsForm.bindFromRequest(request.body.asFormUrlEncoded).fold(
-        formErrorsHandler,
-        customerIDs => {
-          request.body.file("file").map(uploadedFile => (uploadActor ? CreateCampaign(uploadedFile.ref, uploadedFile.filename, refreshToken, customerIDs.managerCustomerId, customerIDs.clientCustomerId)).mapTo[Result]
-          ).getOrElse(Future.successful(BadRequest("file is missed")))
-        })
-    }).getOrElse(Future.successful(Unauthorized))
+    val authUser = googleAuth.getAuthUserDataFromSession(request.session)
+    customerIDsForm.bindFromRequest(request.body.asFormUrlEncoded).fold(
+      formErrorsHandler,
+      customerIDs => {
+        request.body.file("file").map(uploadedFile => (uploadActor ? CreateCampaign(uploadedFile.ref, uploadedFile.filename, authUser, customerIDs.managerCustomerId, customerIDs.clientCustomerId)).mapTo[Result]
+        ).getOrElse(Future.successful(BadRequest("file is missed")))
+      })
+    //    ).getOrElse(Future.successful(Unauthorized))
   }
 }

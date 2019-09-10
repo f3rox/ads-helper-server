@@ -1,11 +1,11 @@
 package utils
 
-import models.{CustomerIDs, UserUpdateData}
+import models.{CustomerIDs, User, UserUpdateData}
 import play.api.data.Form
 import play.api.data.Forms.{mapping, _}
 import play.api.mvc.Result
 import play.api.mvc.Results.BadRequest
-import tables.{Campaign, User}
+import tables.Campaign
 
 import scala.concurrent.Future
 
@@ -22,7 +22,7 @@ object Forms {
 
   val userForm: Form[User] = Form(
     mapping(
-      "id" -> number,
+      "id" -> text,
       "name" -> text,
       "email" -> email,
       "picture" -> text
@@ -31,7 +31,7 @@ object Forms {
 
   val userUpdateForm = Form(
     mapping(
-      "id" -> number,
+      "id" -> text,
       "name" -> optional(text),
       "email" -> optional(email),
       "picture" -> optional(text)
@@ -41,7 +41,7 @@ object Forms {
   val campaignForm: Form[Campaign] = Form(
     mapping(
       "resourceName" -> text,
-      "userId" -> number,
+      "userId" -> text,
       "customerId" -> longNumber,
       "size" -> number
     )(Campaign.apply)(Campaign.unapply)

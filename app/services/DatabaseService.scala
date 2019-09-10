@@ -1,11 +1,11 @@
 package services
 
 import javax.inject.Singleton
-import models.UserUpdateData
+import models.{User, UserUpdateData}
 import play.api.libs.json.{JsValue, Json}
 import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
-import tables.{Campaign, Campaigns, User, Users}
+import tables.{Campaign, Campaigns, Users}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -17,15 +17,15 @@ class DatabaseService {
 
   def createUsersTable(implicit db: PostgresProfile.backend.Database): Future[Unit] = db.run(users.schema.create)
 
-  def addUser(user: User)(implicit db: PostgresProfile.backend.Database): Future[Int] = db.run(users.returning(users.map(_.id)) += user)
+  def addUser(user: User)(implicit db: PostgresProfile.backend.Database): Future[Int] = db.run(users += user)
 
   def getUsers(implicit db: PostgresProfile.backend.Database): Future[List[User]] = db.run(users.result).map(_.toList)
 
   def getUsersAsJson(implicit db: PostgresProfile.backend.Database): Future[JsValue] = getUsers.map(usersList => Json.toJson(usersList.map(_.toJson)))
 
-  def getUser(id: Int)(implicit db: PostgresProfile.backend.Database): Future[User] = db.run(users.filter(_.id === id).result).map(_.head)
+  def getUser(id: String)(implicit db: PostgresProfile.backend.Database): Future[User] = db.run(users.filter(_.id === id).result).map(_.head)
 
-  def deleteUser(id: Int)(implicit db: PostgresProfile.backend.Database): Future[Int] = db.run(users.filter(_.id === id).delete)
+  def deleteUser(id: String)(implicit db: PostgresProfile.backend.Database): Future[Int] = db.run(users.filter(_.id === id).delete)
 
   def updateUser(optionalUser: UserUpdateData)(implicit db: PostgresProfile.backend.Database): Future[Int] = {
     getUser(optionalUser.id).flatMap(existingUser =>
@@ -46,7 +46,9 @@ class DatabaseService {
 
   def getCampaignsAsJson(implicit db: PostgresProfile.backend.Database): Future[JsValue] = getCampaigns.map(campaignsList => Json.toJson(campaignsList.map(_.toJson)))
 
-  def getCampaignsByUserId(userId: Int)(implicit db: PostgresProfile.backend.Database): Future[List[Campaign]] = db.run(campaigns.filter(_.userId === userId).result).map(_.toList)
+  def getCampaignsByUserId(userId: String)(implicit db: PostgresProfile.backend.Database): Future[List[Campaign]] = db.run(campaigns.filter(_.userId === userId).result).map(_.toList)
 
-  def getCampaignsByUserIdAsJson(userId: Int)(implicit db: PostgresProfile.backend.Database): Future[JsValue] = getCampaignsByUserId(userId).map(campaignsList => Json.toJson(campaignsList.map(_.toJson)))
+  def getCampaignsByUserIdAsJson(userId: String)(implicit db: PostgresProfile.backend.Database): Future[JsValue] = getCampaignsByUserId(userId).map(campaignsList => Json.toJson(campaignsList.map(_.toJson)))
+
+  def addUserWithCampaign(user: User, campaign: Campaign)(implicit db: PostgresProfile.backend.Database): Unit = addUser(user).onComplete(_ => addCampaign(campaign))
 }

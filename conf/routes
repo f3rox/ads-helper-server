@@ -2,7 +2,7 @@
 GET           /                               controllers.MainController.index
 GET           /auth                           controllers.MainController.auth
 GET           /oauth2callback                 controllers.MainController.oAuth2Callback
-GET           /authuserinfo                   controllers.MainController.authUserInfo
+GET           /authuserinfo                   controllers.MainController.authUserData
 +nocsrf
 POST          /upload                         controllers.MainController.upload
 +nocsrf

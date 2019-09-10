@@ -9,9 +9,7 @@ import play.api.libs.concurrent.InjectedActorSupport
 import play.api.mvc.{AbstractController, ControllerComponents, Result}
 import utils.Forms._
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Failure, Success, Try}
 
 class DatabaseController @Inject()(@Named("database-actor") databaseActor: ActorRef, components: ControllerComponents) extends AbstractController(components) with InjectedActorSupport {
   implicit val timeout: Timeout = 1.minute
@@ -32,17 +30,11 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
   }
 
   def getUser(id: String) = Action.async {
-    Try(id.toInt) match {
-      case Success(userId) => (databaseActor ? GetUser(userId)).mapTo[Result]
-      case Failure(exception) => Future.successful(BadRequest(exception.toString))
-    }
+    (databaseActor ? GetUser(id)).mapTo[Result]
   }
 
   def deleteUser(id: String) = Action.async {
-    Try(id.toInt) match {
-      case Success(userId) => (databaseActor ? DeleteUser(userId)).mapTo[Result]
-      case Failure(exception) => Future.successful(BadRequest(exception.toString))
-    }
+    (databaseActor ? DeleteUser(id)).mapTo[Result]
   }
 
   def updateUser = Action.async(parse.formUrlEncoded) { request =>
@@ -72,9 +64,6 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
   }
 
   def getCampaignsByUserId(id: String) = Action.async {
-    Try(id.toInt) match {
-      case Success(userId) => (databaseActor ? GetCampaignsByUserId(userId)).mapTo[Result]
-      case Failure(exception) => Future.successful(BadRequest(exception.toString))
-    }
+    (databaseActor ? GetCampaignsByUserId(id)).mapTo[Result]
   }
 }

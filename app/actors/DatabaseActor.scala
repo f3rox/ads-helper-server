@@ -3,12 +3,12 @@ package actors
 import akka.actor.Actor
 import akka.pattern.pipe
 import javax.inject.Inject
-import models.UserUpdateData
+import models.{User, UserUpdateData}
 import play.api.mvc.Results._
 import services.DatabaseService
 import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
-import tables.{Campaign, User}
+import tables.Campaign
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -22,9 +22,9 @@ object DatabaseActor {
 
   case object GetUsersAsJson extends Message
 
-  case class GetUser(id: Int) extends Message
+  case class GetUser(id: String) extends Message
 
-  case class DeleteUser(id: Int) extends Message
+  case class DeleteUser(id: String) extends Message
 
   case class UpdateUser(optionalUser: UserUpdateData) extends Message
 
@@ -36,7 +36,9 @@ object DatabaseActor {
 
   case object GetCampaignsAsJson extends Message
 
-  case class GetCampaignsByUserId(userId: Int) extends Message
+  case class GetCampaignsByUserId(userId: String) extends Message
+
+  case class AddUserWithCampaign(user: User, campaign: Campaign) extends Message
 
 }
 
@@ -85,7 +87,7 @@ class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
         .pipeTo(sender())
     case AddCampaign(campaign) =>
       dbService.addCampaign(campaign)
-        .map(numRows => Ok(s"$numRows campaigns added"))
+        .map(_ => Ok("new campaign \"" + campaign.resourceName + "\" added"))
         .recover { case exception => BadRequest(exception.getMessage) }
         .pipeTo(sender())
     case DeleteCampaign(resourceName) =>
@@ -100,6 +102,8 @@ class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
       dbService.getCampaignsAsJson.map(Ok(_)).pipeTo(sender())
     case GetCampaignsByUserId(userId) =>
       dbService.getCampaignsByUserIdAsJson(userId).map(Ok(_)).pipeTo(sender())
+    case AddUserWithCampaign(user, campaign) =>
+      dbService.addUserWithCampaign(user, campaign)
   }
 
   override def postStop(): Unit = db.close()

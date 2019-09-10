@@ -5,13 +5,9 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 import javax.inject.{Inject, Named}
-import models.UserOptionalData
-import play.api.data.Form
-import play.api.data.Forms._
 import play.api.libs.concurrent.InjectedActorSupport
 import play.api.mvc.{AbstractController, ControllerComponents, Result}
-import tables.{Campaign, User}
-import utils.Utils._
+import utils.Forms._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -25,14 +21,6 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
   }
 
   def addUser = Action.async(parse.formUrlEncoded) { request =>
-    val userForm: Form[User] = Form(
-      mapping(
-        "id" -> number,
-        "name" -> text,
-        "email" -> email,
-        "picture" -> text
-      )(User.apply)(User.unapply)
-    )
     userForm.bindFromRequest(request.body).fold(
       formErrorsHandler,
       user => (databaseActor ? AddUser(user)).mapTo[Result]
@@ -58,17 +46,9 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
   }
 
   def updateUser = Action.async(parse.formUrlEncoded) { request =>
-    val userFormOptional = Form(
-      mapping(
-        "id" -> number,
-        "name" -> optional(text),
-        "email" -> optional(email),
-        "picture" -> optional(text)
-      )(UserOptionalData.apply)(UserOptionalData.unapply)
-    )
-    userFormOptional.bindFromRequest(request.body).fold(
+    userUpdateForm.bindFromRequest(request.body).fold(
       formErrorsHandler,
-      optionalUser => (databaseActor ? UpdateUser(optionalUser)).mapTo[Result]
+      userUpdateData => (databaseActor ? UpdateUser(userUpdateData)).mapTo[Result]
     )
   }
 
@@ -77,14 +57,6 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
   }
 
   def addCampaign = Action.async(parse.formUrlEncoded) { request =>
-    val campaignForm: Form[Campaign] = Form(
-      mapping(
-        "resourceName" -> text,
-        "userId" -> number,
-        "customerId" -> longNumber,
-        "size" -> number
-      )(Campaign.apply)(Campaign.unapply)
-    )
     campaignForm.bindFromRequest(request.body).fold(
       formErrorsHandler,
       campaign => (databaseActor ? AddCampaign(campaign)).mapTo[Result]
@@ -105,7 +77,4 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
       case Failure(exception) => Future.successful(BadRequest(exception.toString))
     }
   }
-
-  //  private def formErrorsHandler[T](formWithErrors: Form[T]): Future[Result] =
-  //    Future.successful(BadRequest(formWithErrors.errors.map(error => s"${error.message} ${error.key}").mkString("\n")))
 }

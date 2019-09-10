@@ -6,12 +6,10 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 import javax.inject._
-import play.api.data.Form
-import play.api.data.Forms._
 import play.api.libs.concurrent.InjectedActorSupport
 import play.api.mvc._
 import services.{AppConfig, GoogleAuth}
-import utils.Utils.formErrorsHandler
+import utils.Forms.{formErrorsHandler, _}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -22,9 +20,7 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Name
   implicit val timeout: Timeout = 1.minute
 
   def index = Action.async {
-    (helloActor ? SayHello).mapTo[String].map { message =>
-      Ok(message)
-    }
+    (helloActor ? SayHello).mapTo[String].map(Ok(_))
   }
 
   def auth = Action(Ok(googleAuth.getRedirectUrl))
@@ -49,13 +45,6 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Name
 
   def upload = Action.async(parse.multipartFormData) { request =>
     request.session.data.get("refresh_token").map(refreshToken => {
-      case class CustomerIDs(managerCustomerId: Long, clientCustomerId: Long)
-      val customerIDsForm: Form[CustomerIDs] = Form(
-        mapping(
-          "managerCustomerId" -> longNumber,
-          "clientCustomerId" -> longNumber
-        )(CustomerIDs.apply)(CustomerIDs.unapply)
-      )
       customerIDsForm.bindFromRequest(request.body.asFormUrlEncoded).fold(
         formErrorsHandler,
         customerIDs => {

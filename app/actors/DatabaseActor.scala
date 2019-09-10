@@ -3,7 +3,7 @@ package actors
 import akka.actor.Actor
 import akka.pattern.pipe
 import javax.inject.Inject
-import models.UserOptionalData
+import models.UserUpdateData
 import play.api.mvc.Results._
 import services.DatabaseService
 import slick.jdbc.PostgresProfile
@@ -26,7 +26,7 @@ object DatabaseActor {
 
   case class DeleteUser(id: Int) extends Message
 
-  case class UpdateUser(optionalUser: UserOptionalData) extends Message
+  case class UpdateUser(optionalUser: UserUpdateData) extends Message
 
   case object CreateCampaignsTable extends Message
 
@@ -72,10 +72,10 @@ class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
         .map(user => Ok(user.toJson))
         .recover { case _ => BadRequest(s"user with id:$id does not exists") }
         .pipeTo(sender())
-    case UpdateUser(optionalUser) =>
-      if (optionalUser.isDefined) dbService.updateUser(optionalUser).map {
-        case numRows if numRows > 0 => Ok(s"user with id:${optionalUser.id} updated")
-        case _ => BadRequest(s"user with id:${optionalUser.id} does not exists")
+    case UpdateUser(userUpdateData) =>
+      if (userUpdateData.isDefined) dbService.updateUser(userUpdateData).map {
+        case numRows if numRows > 0 => Ok(s"user with id:${userUpdateData.id} updated")
+        case _ => BadRequest(s"user with id:${userUpdateData.id} does not exists")
       }.pipeTo(sender())
       else sender() ! BadRequest("nothing to update")
     case CreateCampaignsTable =>

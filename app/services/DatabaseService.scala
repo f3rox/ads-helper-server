@@ -1,7 +1,7 @@
 package services
 
 import javax.inject.Singleton
-import models.UserOptionalData
+import models.UserUpdateData
 import play.api.libs.json.{JsValue, Json}
 import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
@@ -27,7 +27,7 @@ class DatabaseService {
 
   def deleteUser(id: Int)(implicit db: PostgresProfile.backend.Database): Future[Int] = db.run(users.filter(_.id === id).delete)
 
-  def updateUser(optionalUser: UserOptionalData)(implicit db: PostgresProfile.backend.Database): Future[Int] = {
+  def updateUser(optionalUser: UserUpdateData)(implicit db: PostgresProfile.backend.Database): Future[Int] = {
     getUser(optionalUser.id).flatMap(existingUser =>
       db.run(users.filter(_.id === optionalUser.id).map(user => (user.name, user.email, user.picture))
         .update((optionalUser.name.getOrElse(existingUser.name),

@@ -66,4 +66,8 @@ class DatabaseController @Inject()(@Named("database-actor") databaseActor: Actor
   def getCampaignsByUserId(id: String) = Action.async {
     (databaseActor ? GetCampaignsByUserId(id)).mapTo[Result]
   }
+
+  def getUserWithCampaigns(id: String) = Action.async {
+    (databaseActor ? GetUserWithCampaigns(id)).mapTo[Result]
+  }
 }

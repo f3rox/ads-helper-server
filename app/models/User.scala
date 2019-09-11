@@ -10,7 +10,7 @@ case class User(id: String, name: String, email: String, picture: String) {
     "picture" -> picture
   )
 
-  def toAuthUserInfo(accessToken: String, refreshToken: String): AuthUser = {
+  def toAuthUser(accessToken: String, refreshToken: String): AuthUser = {
     AuthUser(
       id = id,
       name = name,

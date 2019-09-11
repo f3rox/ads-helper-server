@@ -13,10 +13,9 @@ import akka.actor.{Actor, ActorRef}
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import javax.inject.{Inject, Named}
-import models.{AuthUser, Product}
+import models.{AuthUser, Campaign, Product}
 import play.api.libs.Files.TemporaryFile
 import play.api.mvc.Results._
-import tables.Campaign
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

@@ -3,12 +3,11 @@ package actors
 import akka.actor.Actor
 import akka.pattern.pipe
 import javax.inject.Inject
-import models.{User, UserUpdateData}
+import models.{Campaign, User, UserUpdateData, UserWithCampaigns}
 import play.api.mvc.Results._
 import services.DatabaseService
 import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
-import tables.Campaign
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -39,6 +38,11 @@ object DatabaseActor {
   case class GetCampaignsByUserId(userId: String) extends Message
 
   case class AddUserWithCampaign(user: User, campaign: Campaign) extends Message
+
+  // Test
+  case class GetUserWithCampaigns(id: String) extends Message
+
+  case class AddUserWithCampaigns(userWithCampaigns: UserWithCampaigns) extends Message
 
 }
 
@@ -104,6 +108,13 @@ class DatabaseActor @Inject()(dbService: DatabaseService) extends Actor {
       dbService.getCampaignsByUserIdAsJson(userId).map(Ok(_)).pipeTo(sender())
     case AddUserWithCampaign(user, campaign) =>
       dbService.addUserWithCampaign(user, campaign)
+    case GetUserWithCampaigns(id) =>
+      dbService.getUserWithCampaigns(id).map(res => Ok(res.toJson)).pipeTo(sender())
+    case AddUserWithCampaigns(userWithCampaigns) =>
+      dbService.addUserWithCampaigns(userWithCampaigns)
+        .map(_ => Ok(s"new userWithCampaigns with id:${userWithCampaigns.user.id} added"))
+        .recover { case exception => BadRequest(exception.getMessage) }
+        .pipeTo(sender())
   }
 
   override def postStop(): Unit = db.close()

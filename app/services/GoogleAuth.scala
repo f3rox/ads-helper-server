@@ -15,22 +15,22 @@ import play.api.libs.ws.WSClient
 import play.api.mvc.Session
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 @Singleton
 class GoogleAuth @Inject()(@Named("auth-actor") authActor: ActorRef, ws: WSClient, appConfig: AppConfig) {
   implicit val timeout: Timeout = 10.seconds
 
-  def getUserInfo(accessToken: String): User = {
-    Await.result(ws.url("https://www.googleapis.com/oauth2/v2/userinfo").addQueryStringParameters("access_token" -> accessToken).get().map { response =>
+  def getUserInfo(accessToken: String): Future[User] = {
+    ws.url("https://www.googleapis.com/oauth2/v2/userinfo").addQueryStringParameters("access_token" -> accessToken).get().map { response =>
       val name = (response.json \ "name").as[String]
       val email = (response.json \ "email").as[String]
       val picture = (response.json \ "picture").as[String]
       val id = (response.json \ "id").as[String]
       User(id, name, email, picture)
-    }, 10.seconds)
+    }
   }
 
   def getAuthUserDataFromSession(session: Session): AuthUser = {
@@ -45,15 +45,13 @@ class GoogleAuth @Inject()(@Named("auth-actor") authActor: ActorRef, ws: WSClien
     )
   }
 
-  def getAuthUserInfoFromCallback(state: String, code: String): AuthUser = {
+  def getAuthUserInfoFromCallback(state: String, code: String): Future[AuthUser] = {
     val userAuthorizer = getUserAuthorizer(state)
     val userCredentials = userAuthorizer.getCredentialsFromCode(code, URI.create(appConfig.getServerBaseUrl))
     val accessToken = userCredentials.getAccessToken.getTokenValue
     println("Access token: " + accessToken)
     val refreshToken = userCredentials.getRefreshToken
-    val userInfo = getUserInfo(accessToken)
-    val authUserInfo = userInfo.toAuthUserInfo(accessToken, refreshToken)
-    authUserInfo
+    getUserInfo(accessToken).map(_.toAuthUser(accessToken, refreshToken))
   }
 
   def getRedirectUrl: String = {

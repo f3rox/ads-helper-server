@@ -27,14 +27,13 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Name
 
   def deleteSession = Action(Ok.withNewSession)
 
-  def oAuth2Callback = Action { request =>
+  def oAuth2Callback = Action.async { request =>
     val state = request.getQueryString("state")
     val code = request.getQueryString("code")
     if (state.isDefined && code.isDefined) {
-      val authUserInfo = googleAuth.getAuthUserInfoFromCallback(state.get, code.get)
-      Redirect(appConfig.getClientBaseUrl).withSession(authUserInfo.toSession)
+      googleAuth.getAuthUserInfoFromCallback(state.get, code.get).map(authUser => Redirect(appConfig.getClientBaseUrl).withSession(authUser.toSession))
     }
-    else BadRequest
+    else Future.successful(BadRequest)
   }
 
   def authUserData = Action { request =>

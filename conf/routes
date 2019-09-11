@@ -1,4 +1,4 @@
-# MainController
+# ----- MainController -----
 GET           /                               controllers.MainController.index
 GET           /auth                           controllers.MainController.auth
 GET           /oauth2callback                 controllers.MainController.oAuth2Callback
@@ -7,11 +7,10 @@ GET           /authuserinfo                   controllers.MainController.authUse
 POST          /upload                         controllers.MainController.upload
 +nocsrf
 DELETE        /auth                           controllers.MainController.deleteSession
-# DatabaseController
+# ----- DatabaseController -----
+# Users
 GET           /users                          controllers.DatabaseController.getUsers
 GET           /users/:id                      controllers.DatabaseController.getUser(id:String)
-GET           /campaigns                      controllers.DatabaseController.getCampaigns
-GET           /campaigns/:id                  controllers.DatabaseController.getCampaignsByUserId(id:String)
 +nocsrf
 PUT           /users                          controllers.DatabaseController.createUsersTable
 +nocsrf
@@ -20,9 +19,14 @@ POST          /users                          controllers.DatabaseController.add
 DELETE        /users/:id                      controllers.DatabaseController.deleteUser(id:String)
 +nocsrf
 PATCH         /users                          controllers.DatabaseController.updateUser
+# Campaigns
+GET           /campaigns                      controllers.DatabaseController.getCampaigns
+GET           /campaigns/:id                  controllers.DatabaseController.getCampaignsByUserId(id:String)
 +nocsrf
 PUT           /campaigns                      controllers.DatabaseController.createCampaignsTable
 +nocsrf
 POST          /campaigns                      controllers.DatabaseController.addCampaign
 +nocsrf
 DELETE        /campaigns/:resourceName        controllers.DatabaseController.deleteCampaign(resourceName:String)
+# Test
+GET           /userwithcampaigns/:id          controllers.DatabaseController.getUserWithCampaigns(id:String)

@@ -1,11 +1,11 @@
 package services
 
 import javax.inject.Singleton
-import models.{User, UserUpdateData}
+import models.{Campaign, User, UserUpdateData, UserWithCampaigns}
 import play.api.libs.json.{JsValue, Json}
 import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
-import tables.{Campaign, Campaigns, Users}
+import tables.{Campaigns, Users}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -51,4 +51,14 @@ class DatabaseService {
   def getCampaignsByUserIdAsJson(userId: String)(implicit db: PostgresProfile.backend.Database): Future[JsValue] = getCampaignsByUserId(userId).map(campaignsList => Json.toJson(campaignsList.map(_.toJson)))
 
   def addUserWithCampaign(user: User, campaign: Campaign)(implicit db: PostgresProfile.backend.Database): Unit = addUser(user).onComplete(_ => addCampaign(campaign))
+
+  // Test
+  def getUserWithCampaigns(id: String)(implicit db: PostgresProfile.backend.Database): Future[UserWithCampaigns] = {
+    db.run(users.filter(_.id === id).result.head.zip(campaigns.filter(_.userId === id).result)).map {
+      case (user, campaigns) => UserWithCampaigns(user, campaigns.toList)
+    }
+  }
+
+  def addUserWithCampaigns(userWithCampaigns: UserWithCampaigns)(implicit db: PostgresProfile.backend.Database): Future[Unit] =
+    db.run(DBIO.seq(users += userWithCampaigns.user, campaigns ++= userWithCampaigns.campaigns))
 }

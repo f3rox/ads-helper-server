@@ -1,11 +1,10 @@
 package utils
 
-import models.{CustomerIDs, User, UserUpdateData}
+import models.{Campaign, CustomerIDs, User, UserUpdateData}
 import play.api.data.Form
 import play.api.data.Forms.{mapping, _}
 import play.api.mvc.Result
 import play.api.mvc.Results.BadRequest
-import tables.Campaign
 
 import scala.concurrent.Future
 

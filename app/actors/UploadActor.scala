@@ -14,11 +14,11 @@ import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import javax.inject.{Inject, Named}
 import models.{AuthUser, Campaign, Product}
+import monads.FutureEither
 import play.api.libs.Files.TemporaryFile
 import play.api.mvc.Results._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.concurrent.duration._
 
 object UploadActor {
@@ -38,7 +38,7 @@ class UploadActor @Inject()(@Named("root-actor") rootActor: ActorRef, @Named("da
   override def receive: Receive = {
     case CreateCampaign(uploadedFile, fileName, authUser, managerCustomerId, clientCustomerId) =>
       val productsFuture = (rootActor ? GetFileActor(fileName)).mapTo[ActorRef].flatMap { fileActor =>
-        (fileActor ? ParseFile(uploadedFile)).mapTo[List[Product]]
+        (fileActor ? ParseFile(uploadedFile)).mapTo[Either[Throwable, List[Product]]]
       }
       val googleAdsActorFuture = (rootActor ? GetGoogleAdsActor(authUser.refreshToken, managerCustomerId, clientCustomerId)).mapTo[ActorRef]
       googleAdsActorFuture.flatMap { googleAdsActor =>
@@ -47,28 +47,32 @@ class UploadActor @Inject()(@Named("root-actor") rootActor: ActorRef, @Named("da
         val adGroupsActorFuture = (googleAdsActor ? GetAdGroupsActor).mapTo[ActorRef]
         val keywordsActorFuture = (googleAdsActor ? GetKeywordsActor).mapTo[ActorRef]
         val expandedTextAdsActorFuture = (googleAdsActor ? GetExpandedTextAdsActor).mapTo[ActorRef]
-        for {
-          budgetResourceName <- campaignBudgetActorFuture.flatMap { campaignBudgetActor =>
-            (campaignBudgetActor ? AddCampaignBudget(500000, s"CampaignBudget #${System.currentTimeMillis()}")).mapTo[String]
-          }
-          campaignResourceName <- campaignActorFuture.flatMap { campaignActor =>
-            (campaignActor ? AddCampaign(budgetResourceName, s"Campaign #${System.currentTimeMillis()}")).mapTo[String]
-          }
-          products <- productsFuture
-          adGroupsResourcesNames <- adGroupsActorFuture.flatMap { adGroupsActor =>
-            (adGroupsActor ? AddAdGroups(campaignResourceName, products)).mapTo[List[String]]
-          }
+        val futureEither = for {
+          budgetResourceName <- FutureEither(campaignBudgetActorFuture.flatMap { campaignBudgetActor =>
+            (campaignBudgetActor ? AddCampaignBudget(500000, s"Budget #${System.currentTimeMillis()}")).mapTo[Either[Throwable, String]]
+          })
+          campaignResourceName <- FutureEither(campaignActorFuture.flatMap { campaignActor =>
+            (campaignActor ? AddCampaign(budgetResourceName, s"Campaign #${System.currentTimeMillis()}")).mapTo[Either[Throwable, String]]
+          })
+          products <- FutureEither(productsFuture)
+          adGroupsResourcesNames <- FutureEither(adGroupsActorFuture.flatMap { adGroupsActor =>
+            (adGroupsActor ? AddAdGroups(campaignResourceName, products)).mapTo[Either[Throwable, List[String]]]
+          })
           productsWithAdGroups = products.zip(adGroupsResourcesNames)
-          _ <- keywordsActorFuture.flatMap { keywordsActor =>
-            keywordsActor ? AddKeywords(productsWithAdGroups)
-          }
-          _ <- expandedTextAdsActorFuture.flatMap { expandedTextAdsActor =>
-            expandedTextAdsActor ? AddExpandedTextAds(productsWithAdGroups)
-          }
+          _ <- FutureEither(keywordsActorFuture.flatMap { keywordsActor =>
+            (keywordsActor ? AddKeywords(productsWithAdGroups)).mapTo[Either[Throwable, List[String]]]
+          })
+          _ <- FutureEither(expandedTextAdsActorFuture.flatMap { expandedTextAdsActor =>
+            (expandedTextAdsActor ? AddExpandedTextAds(productsWithAdGroups)).mapTo[Either[Throwable, List[String]]]
+          })
           user = authUser.toUser
           campaign = Campaign(campaignResourceName, user.id, clientCustomerId, products.size)
           _ = databaseActor ! AddUserWithCampaign(user, campaign)
-        } yield Created("Campaign created")
-      }.fallbackTo(Future.successful(InternalServerError("Error"))).pipeTo(sender())
+        } yield "Campaign created"
+        futureEither.value
+      }.map {
+        case Right(message) => Ok(message)
+        case Left(exception) => Ok(exception.toString) // ???
+      }.pipeTo(sender())
   }
 }

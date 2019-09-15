@@ -47,7 +47,8 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Name
     customerIDsForm.bindFromRequest(request.body.asFormUrlEncoded).fold(
       formErrorsHandler,
       customerIDs => {
-        request.body.file("file").map(uploadedFile => (uploadActor ? CreateCampaign(uploadedFile.ref, uploadedFile.filename, authUser, customerIDs.managerCustomerId, customerIDs.clientCustomerId)).mapTo[Result]
+        request.body.file("file").map(uploadedFile =>
+          (uploadActor ? CreateCampaign(uploadedFile.ref, uploadedFile.filename, authUser, customerIDs.managerCustomerId, customerIDs.clientCustomerId)).mapTo[Result]
         ).getOrElse(Future.successful(BadRequest("file is missed")))
       })
     //    ).getOrElse(Future.successful(Unauthorized))

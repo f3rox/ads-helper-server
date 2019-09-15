@@ -9,6 +9,6 @@ case class FutureEither[A](value: Future[Either[Throwable, A]]) {
   def flatMap[B](f: A => FutureEither[B]) =
     FutureEither(value.flatMap {
       case Right(eitherValue) => f(eitherValue).value
-      case Left(exception) => Future.failed(exception)
+      case Left(exception) => Future.successful(Left(exception))
     })
 }

@@ -72,7 +72,7 @@ class UploadActor @Inject()(@Named("root-actor") rootActor: ActorRef, @Named("da
         futureEither.value
       }.map {
         case Right(message) => Ok(message)
-        case Left(exception) => Ok(exception.toString) // ???
+        case Left(exception) => InternalServerError(exception.getMessage)
       }.pipeTo(sender())
   }
 }

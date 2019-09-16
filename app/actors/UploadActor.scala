@@ -12,9 +12,10 @@ import actors.RootActor.{GetFileActor, GetGoogleAdsActor}
 import akka.actor.{Actor, ActorRef}
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
+import cats.data.EitherT
+import cats.implicits._
 import javax.inject.{Inject, Named}
 import models.{AuthUser, Campaign, Product}
-import monads.FutureEither
 import play.api.libs.Files.TemporaryFile
 import play.api.mvc.Results._
 
@@ -48,21 +49,21 @@ class UploadActor @Inject()(@Named("root-actor") rootActor: ActorRef, @Named("da
         val keywordsActorFuture = (googleAdsActor ? GetKeywordsActor).mapTo[ActorRef]
         val expandedTextAdsActorFuture = (googleAdsActor ? GetExpandedTextAdsActor).mapTo[ActorRef]
         val futureEither = for {
-          budgetResourceName <- FutureEither(campaignBudgetActorFuture.flatMap { campaignBudgetActor =>
+          budgetResourceName <- EitherT(campaignBudgetActorFuture.flatMap { campaignBudgetActor =>
             (campaignBudgetActor ? AddCampaignBudget(500000, s"Budget #${System.currentTimeMillis()}")).mapTo[Either[Throwable, String]]
           })
-          campaignResourceName <- FutureEither(campaignActorFuture.flatMap { campaignActor =>
+          campaignResourceName <- EitherT(campaignActorFuture.flatMap { campaignActor =>
             (campaignActor ? AddCampaign(budgetResourceName, s"Campaign #${System.currentTimeMillis()}")).mapTo[Either[Throwable, String]]
           })
-          products <- FutureEither(productsFuture)
-          adGroupsResourcesNames <- FutureEither(adGroupsActorFuture.flatMap { adGroupsActor =>
+          products <- EitherT(productsFuture)
+          adGroupsResourcesNames <- EitherT(adGroupsActorFuture.flatMap { adGroupsActor =>
             (adGroupsActor ? AddAdGroups(campaignResourceName, products)).mapTo[Either[Throwable, List[String]]]
           })
           productsWithAdGroups = products.zip(adGroupsResourcesNames)
-          _ <- FutureEither(keywordsActorFuture.flatMap { keywordsActor =>
+          _ <- EitherT(keywordsActorFuture.flatMap { keywordsActor =>
             (keywordsActor ? AddKeywords(productsWithAdGroups)).mapTo[Either[Throwable, List[String]]]
           })
-          _ <- FutureEither(expandedTextAdsActorFuture.flatMap { expandedTextAdsActor =>
+          _ <- EitherT(expandedTextAdsActorFuture.flatMap { expandedTextAdsActor =>
             (expandedTextAdsActor ? AddExpandedTextAds(productsWithAdGroups)).mapTo[Either[Throwable, List[String]]]
           })
           user = authUser.toUser

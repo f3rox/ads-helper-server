@@ -20,3 +20,4 @@ libraryDependencies ++= List(
   "com.typesafe.slick" %% "slick-hikaricp" % "3.2.1",
   "org.postgresql" % "postgresql" % "9.4-1206-jdbc42"
 )
+libraryDependencies += "org.typelevel" %% "cats-core" % "2.0.0"

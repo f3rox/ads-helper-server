@@ -1,7 +1,7 @@
 package controllers
 
 import actors.HelloActor.SayHello
-import actors.UploadActor.CreateCampaign
+import actors.UploadActor.{CreateCampaign, CreateCampaigns}
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
@@ -52,5 +52,17 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Name
         ).getOrElse(Future.successful(BadRequest("file is missed")))
       })
     //    ).getOrElse(Future.successful(Unauthorized))
+  }
+
+  def createCampaigns = Action.async(parse.multipartFormData) { request =>
+    val authUser = googleAuth.getAuthUserDataFromSession(request.session)
+    val clientCustomerIDs = List(2515161029L, 8046022333L, 1293349074L, 4861434519L, 9854279244L)
+    customerIDsForm.bindFromRequest(request.body.asFormUrlEncoded).fold(
+      formErrorsHandler,
+      customerIDs => {
+        request.body.file("file").map(uploadedFile =>
+          (uploadActor ? CreateCampaigns(uploadedFile.ref, uploadedFile.filename, authUser, customerIDs.managerCustomerId, clientCustomerIDs)).mapTo[Result]
+        ).getOrElse(Future.successful(BadRequest("file is missed")))
+      })
   }
 }

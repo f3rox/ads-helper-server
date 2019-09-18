@@ -6,6 +6,8 @@ GET           /authuserinfo                   controllers.MainController.authUse
 +nocsrf
 POST          /upload                         controllers.MainController.upload
 +nocsrf
+POST          /uploadtest                     controllers.MainController.createCampaigns
++nocsrf
 DELETE        /auth                           controllers.MainController.deleteSession
 # ----- DatabaseController -----
 # Users

@@ -21,3 +21,4 @@ libraryDependencies ++= List(
   "org.postgresql" % "postgresql" % "9.4-1206-jdbc42"
 )
 libraryDependencies += "org.typelevel" %% "cats-core" % "2.0.0"
+scalacOptions += "-Ypartial-unification"

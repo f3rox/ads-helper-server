@@ -55,14 +55,12 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Name
   }
 
   def createCampaigns = Action.async(parse.multipartFormData) { request =>
+    println("Controller Test")
     val authUser = googleAuth.getAuthUserDataFromSession(request.session)
+    val managerCustomerID = 1169899225L
     val clientCustomerIDs = List(2515161029L, 8046022333L, 1293349074L, 4861434519L, 9854279244L)
-    customerIDsForm.bindFromRequest(request.body.asFormUrlEncoded).fold(
-      formErrorsHandler,
-      customerIDs => {
-        request.body.file("file").map(uploadedFile =>
-          (uploadActor ? CreateCampaigns(uploadedFile.ref, uploadedFile.filename, authUser, customerIDs.managerCustomerId, clientCustomerIDs)).mapTo[Result]
-        ).getOrElse(Future.successful(BadRequest("file is missed")))
-      })
+    request.body.file("file").map(uploadedFile =>
+      (uploadActor ? CreateCampaigns(uploadedFile.ref, uploadedFile.filename, authUser, managerCustomerID, clientCustomerIDs)).mapTo[Result]
+    ).getOrElse(Future.successful(BadRequest("file is missed")))
   }
 }

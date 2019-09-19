@@ -9,7 +9,6 @@ resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 resolvers += "Akka Snapshot Repository" at "http://repo.akka.io/snapshots/"
 
 scalaVersion := "2.12.7"
-
 //libraryDependencies ++= Seq(jdbc, ehcache, ws, guice)
 libraryDependencies ++= Seq(ws, guice)
 libraryDependencies += "com.google.api-ads" % "google-ads" % "4.1.0"

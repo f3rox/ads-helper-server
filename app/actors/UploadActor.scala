@@ -9,13 +9,11 @@ import actors.FileActor.ParseFile
 import actors.GoogleAdsActor._
 import actors.KeywordsActor.AddKeywords
 import actors.RootActor.{GetFileActor, GetGoogleAdsActor}
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, PoisonPill}
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import cats.data.EitherT
-import cats.instances.future._
-import cats.instances.list._
-import cats.syntax.traverse._
+import cats.implicits._
 import javax.inject.{Inject, Named}
 import models.{AuthUser, Campaign, Product}
 import play.api.libs.Files.TemporaryFile
@@ -41,9 +39,21 @@ class UploadActor @Inject()(@Named("root-actor") rootActor: ActorRef, @Named("da
 
   implicit val timeout: Timeout = 1.minute
 
+  implicit class ListTraverseEitherT[A](list: List[A]) /*(implicit executor: ExecutionContext)*/ {
+    def traverseAtLeastOne[B](f: A => EitherT[Future, Throwable, B]): EitherT[Future, Throwable, List[B]] =
+      EitherT {
+        Future.traverse(list)(f.map(_.value)).map(results => {
+          val (failures, successes) = results.separate
+          if (successes.isEmpty) Left(failures.head) else Right(successes)
+        })
+      }
+  }
+
   def getProductsList(uploadedFile: TemporaryFile, fileName: String): EitherT[Future, Throwable, List[Product]] =
     EitherT((rootActor ? GetFileActor(fileName)).mapTo[ActorRef].flatMap { fileActor =>
-      (fileActor ? ParseFile(uploadedFile)).mapTo[Either[Throwable, List[Product]]]
+      val productsList = (fileActor ? ParseFile(uploadedFile)).mapTo[Either[Throwable, List[Product]]]
+      fileActor ! PoisonPill
+      productsList
     })
 
   def createCampaignForCustomer(products: List[Product], authUser: AuthUser, managerCustomerId: Long, clientCustomerId: Long): EitherT[Future, Throwable, String] =
@@ -75,6 +85,7 @@ class UploadActor @Inject()(@Named("root-actor") rootActor: ActorRef, @Named("da
           user = authUser.toUser
           campaign = Campaign(campaignResourceName, user.id, clientCustomerId, products.size)
           _ = databaseActor ! AddUserWithCampaign(user, campaign)
+          _ = googleAdsActor ! PoisonPill
         } yield campaignResourceName
         futureEither.value
       }
@@ -84,11 +95,11 @@ class UploadActor @Inject()(@Named("root-actor") rootActor: ActorRef, @Named("da
     case CreateCampaigns(uploadedFile, fileName, authUser, managerCustomerId, clientCustomerIDs) =>
       val result = for {
         productsList <- getProductsList(uploadedFile, fileName)
-        createdCampaigns <- clientCustomerIDs.traverse(clientCustomerID =>
+        createdCampaigns <- clientCustomerIDs.traverseAtLeastOne(clientCustomerID =>
           createCampaignForCustomer(productsList, authUser, managerCustomerId, clientCustomerID))
       } yield createdCampaigns
       result.value.map {
-        case Right(createdCampaignsList) => Ok("Created campaigns:\n" + createdCampaignsList.mkString("\n"))
+        case Right(createdCampaignsList) => Ok(createdCampaignsList.mkString("\n"))
         case Left(exception) => InternalServerError(exception.getMessage)
       }.pipeTo(sender())
   }

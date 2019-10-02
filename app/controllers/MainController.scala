@@ -54,11 +54,14 @@ class MainController @Inject()(@Named("hello-actor") helloActor: ActorRef, @Name
   }
 
   def createCampaigns = Action.async(parse.multipartFormData) { request =>
+    val start = System.currentTimeMillis()
     val authUser = googleAuth.getAuthUserDataFromSession(request.session)
     val managerCustomerID = 1169899225L
     val clientCustomerIDs = List(2515161029L, 8046022333L, 1293349074L, 4861434519L, 9854279244L)
-    request.body.file("file").map(uploadedFile =>
+    val result = request.body.file("file").map(uploadedFile =>
       (uploadActor ? CreateCampaigns(uploadedFile.ref, uploadedFile.filename, authUser, managerCustomerID, clientCustomerIDs)).mapTo[Result]
     ).getOrElse(Future.successful(BadRequest("file is missed")))
+    result.onComplete(res => println(s"\nWORK FINISHED IN ${(System.currentTimeMillis() - start) / 1000.0} SEC\n$res\n"))
+    result
   }
 }
